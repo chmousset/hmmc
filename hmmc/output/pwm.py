@@ -58,7 +58,7 @@ class DeadTime(Module):
 		]
 
 
-class Pulseguard(Module):
+class PulseGuard(Module):
 	"""Pulse Guard
 
 	This module enables to lenghten or shorten a stream of pulses (such as a PWM or delta-sigma
