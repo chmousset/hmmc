@@ -41,7 +41,7 @@ class DeadTime(Module):
 		# # #
 
 		prev_in = Signal()
-		cnt = Signal(resolution)
+		cnt = Signal(resolution, reset=2**resolution - 1)
 
 		self.comb += [
 			self.out_h.eq((prev_in == self.input) & (cnt == 0) & self.input),
