@@ -1,9 +1,8 @@
-from migen import *
-from hmmc.output.pwm import Pwm, DeadTime, PulseGuard
 import unittest
 import inspect
 from math import ceil, log2
-from random import randrange
+from migen import run_simulation, passive
+from hmmc.output.pwm import Pwm, DeadTime, PulseGuard
 
 
 class TestPwm(unittest.TestCase):
@@ -11,17 +10,19 @@ class TestPwm(unittest.TestCase):
         cnt = 0
         yield dut.period.eq(period)
         yield dut.duty_cycle.eq(dc)
-        self.assertEqual((yield dut.out), 0, msg=f"cnt={cnt}")
+        self.assertEqual((yield dut.output), 0, msg=f"cnt={cnt}")
         self.assertEqual((yield dut.cycle_update), 1, msg=f"cnt={cnt}")
         yield
         for _ in range(dc):
-            self.assertEqual((yield dut.out), 1, msg=f"cnt={cnt}")
-            self.assertEqual((yield dut.cycle_update), 1 if cnt % (period + 1) == 0 else 0, msg=f"cnt={cnt}")
+            self.assertEqual((yield dut.output), 1, msg=f"cnt={cnt}")
+            self.assertEqual((yield dut.cycle_update), 1 if cnt % (period + 1) == 0 else 0,
+                msg=f"cnt={cnt}")
             yield
             cnt += 1
         for _ in range(period - dc):
-            self.assertEqual((yield dut.out), 0, msg=f"cnt={cnt}")
-            self.assertEqual((yield dut.cycle_update), 1 if cnt % (period + 1) == 0 else 0, msg=f"cnt={cnt}")
+            self.assertEqual((yield dut.output), 0, msg=f"cnt={cnt}")
+            self.assertEqual((yield dut.cycle_update), 1 if cnt % (period + 1) == 0 else 0,
+                msg=f"cnt={cnt}")
             yield
             cnt += 1
         yield
@@ -43,7 +44,7 @@ class TestPwm(unittest.TestCase):
         run_simulation(dut, [self.pwm_test(dut, 100, 20)], vcd_name=inspect.stack()[0][3] + ".vcd")
 
 
-class TestPwm(unittest.TestCase):
+class TestDeadTime(unittest.TestCase):
     def deadtime_test_setup(self, dut, dt):
         yield dut.input.eq(0)
         yield dut.deadtime.eq(dt)
@@ -115,13 +116,11 @@ class TestPulseGuard(unittest.TestCase):
     @passive
     def pulseguard_test_check(self, dut, min_pulse, max_pulse):
         cnt = 0
-        last_h_one = 0
-        last_l_one = 0
-        prev_value = (yield dut.out)
+        prev_value = (yield dut.output)
         while True:
             self.assertGreaterEqual(max_pulse + 1, cnt)
-            if prev_value != (yield dut.out):
-                prev_value = (yield dut.out)
+            if prev_value != (yield dut.output):
+                prev_value = (yield dut.output)
                 self.assertGreaterEqual(cnt, min_pulse + 1)
                 cnt = 1
             else:
@@ -142,6 +141,6 @@ class TestPulseGuard(unittest.TestCase):
         min_pulse = 4
         max_pulse = 20
         run_simulation(dut, [
-            self.pulseguard_test_setup(dut, min_pulse, max_pulse, [10 for _ in range(5)]), 
+            self.pulseguard_test_setup(dut, min_pulse, max_pulse, [10 for _ in range(5)]),
             self.pulseguard_test_check(dut, min_pulse, max_pulse)],
             vcd_name=inspect.stack()[0][3] + ".vcd")
