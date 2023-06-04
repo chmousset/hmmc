@@ -3,6 +3,7 @@ from hmmc.output.pwm import Pwm, DeadTime, PulseGuard
 import unittest
 import inspect
 from math import ceil, log2
+from random import randrange
 
 
 class TestPwm(unittest.TestCase):
@@ -94,4 +95,53 @@ class TestPwm(unittest.TestCase):
         dt = 10
         dut = DeadTime(ceil(log2(dt)))
         run_simulation(dut, [self.deadtime_test_setup(dut, dt), self.deadtime_test_check(dut, dt)],
+            vcd_name=inspect.stack()[0][3] + ".vcd")
+
+
+class TestPulseGuard(unittest.TestCase):
+    def pulseguard_test_setup(self, dut, min_pulse, max_pulse, sequence):
+        yield dut.min_pulse.eq(min_pulse)
+        yield dut.max_pulse.eq(max_pulse)
+        value = False
+        yield dut.input.eq(value)
+
+        for duration in sequence:
+            for _ in range(duration):
+                yield dut.input.eq(value)
+                yield
+            value = ~value
+        yield
+
+    @passive
+    def pulseguard_test_check(self, dut, min_pulse, max_pulse):
+        cnt = 0
+        last_h_one = 0
+        last_l_one = 0
+        prev_value = (yield dut.out)
+        while True:
+            self.assertGreaterEqual(max_pulse + 1, cnt)
+            if prev_value != (yield dut.out):
+                prev_value = (yield dut.out)
+                self.assertGreaterEqual(cnt, min_pulse + 1)
+                cnt = 1
+            else:
+                cnt += 1
+            yield
+
+    def test_pulseguard_zeros(self):
+        dut = PulseGuard(5)
+        min_pulse = 4
+        max_pulse = 20
+        run_simulation(dut, [
+            self.pulseguard_test_setup(dut, min_pulse, max_pulse, [70]),
+            self.pulseguard_test_check(dut, min_pulse, max_pulse)],
+            vcd_name=inspect.stack()[0][3] + ".vcd")
+
+    def test_pulseguard_ten(self):
+        dut = PulseGuard(5)
+        min_pulse = 4
+        max_pulse = 20
+        run_simulation(dut, [
+            self.pulseguard_test_setup(dut, min_pulse, max_pulse, [10 for _ in range(5)]), 
+            self.pulseguard_test_check(dut, min_pulse, max_pulse)],
             vcd_name=inspect.stack()[0][3] + ".vcd")

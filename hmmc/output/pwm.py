@@ -86,7 +86,7 @@ class PulseGuard(Module):
 	def __init__(self, resolution: int, settings_sync=False):
 		self.input = Signal()
 		self.min_pulse = Signal(resolution)
-		self.max_pulse = Signal(resolution)
+		self.max_pulse = Signal(resolution, reset=22)# reset=2**resolution - 1)
 		self.out = Signal()
 
 		# # #
@@ -109,22 +109,24 @@ class PulseGuard(Module):
 			minp = self.min_pulse
 			maxp = self.max_pulse
 
-		fsm = FSM(reset_state="FORCE_MIN")
+		self.submodules.fsm = fsm = FSM(reset_state="NORM")
 		fsm.act("FORCE_MIN",
 			self.out.eq(prev_out),
 			NextValue(cnt, cnt+1),
 			If(cnt == minp,
-				NextState("NORM"))
+				NextState("NORM"),
+			),
 		)
 		fsm.act("NORM",
-			If((self.out != input) | (cnt == maxp),
+			If((prev_out != self.input) | (cnt == maxp),
 				NextValue(cnt, 0),
 				NextState("FORCE_MIN"),
+				NextValue(prev_out, ~prev_out),
 				self.out.eq(~prev_out),
 			).Else(
 				NextValue(cnt, cnt+1),
-				self.out.eq(prev_out),
-			)
+				self.out.eq(self.input),
+			),
 		)
 
 		self.sync += prev_out.eq(self.out)
