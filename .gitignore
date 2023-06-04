@@ -1,0 +1,11 @@
+/newmot/*/test/*.sv
+/newmot/*/test/*.vvp
+/newmot/*/test/*.out
+/newmot/*/test/*.xml
+/newmot/*/test/*.svg
+*.vcd
+/newmot/*/test/sim_build
+/env/
+__pycache__/
+build/
+*.egg-info/
