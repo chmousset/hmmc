@@ -75,8 +75,8 @@ class PulseGuard(Module):
 
     :type resolution: int
     :param resolution: size of the counter in bits
-    :param settings_sync: if True, PWM settings are updated once per cycle. Ensures no glitch can appear
-                          on the output
+    :param settings_sync: if True, PWM settings are updated once per cycle. Ensures no glitch can
+        appear on the output
     :type settings_sync: bool
 
     :inputs:
@@ -146,7 +146,8 @@ class Pwm(Module):
 
     :inputs:
         - **period** (*Signal(resolution)*): length of the entire PWM cycle
-        - **duty_cycle** (*Signal(resolution)*): length of the '1' output state. If 0, output stays at 0 all the time.
+        - **duty_cycle** (*Signal(resolution)*): length of the '1' output state. If 0, output stays
+          at 0 all the time.
         - **center_mode** (*Signal()*): if '1', the PWM counter will count up and down
 
     :outputs:

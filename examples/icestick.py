@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
-from migen.build.generic_platform import Subsignal, Pins, Misc
+from migen.build.generic_platform import Subsignal, Pins
 from migen import Module, If, Signal
 from migen.build.platforms.icestick import Platform
 from hmmc.output.pwm import Pwm

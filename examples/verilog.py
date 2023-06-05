@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from migen import Module, If, Signal
+from migen import Module, Signal
 from migen.fhdl.verilog import convert
 from hmmc.output.pwm import Pwm, DeadTime
 
