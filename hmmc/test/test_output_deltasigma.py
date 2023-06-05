@@ -16,8 +16,8 @@ class TestDeltaSigma(unittest.TestCase):
         for _ in range(integration_duration):
             yield
             int_out += (yield dut.output)
-        assert value >= (int_out / integration_duration - 1) * 2**(dut.input.nbits)
-        assert value <= (int_out / integration_duration + 1) * 2**(dut.input.nbits)
+        self.assertGreaterEqual(value, (int_out / integration_duration - 1) * 2**(dut.input.nbits))
+        self.assertGreaterEqual((int_out / integration_duration + 1) * 2**(dut.input.nbits), value)
 
     @passive
     def deltasigma_check_pulse_duration(self, dut, value):
@@ -34,7 +34,7 @@ class TestDeltaSigma(unittest.TestCase):
                 cnt += 1
             yield
 
-    def test_deltasigma_rnd(self):
+    def test_output_deltasigma_rnd(self):
         resolution = 8
         max_range = 2**8
         for _ in range(10):

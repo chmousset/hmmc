@@ -1,4 +1,6 @@
-"""Pulse Width Modulator
+"""
+Pulse Width Modulator
+=====================
 
 PWM is typically used to modulate voltage applied on inductive loads such as motor phases, as the
 inductive load smoothens the current. The average (DC) current flowing through the inductive load is
@@ -12,25 +14,26 @@ from migen import Module, Signal, If, NextState, NextValue, FSM
 
 
 class DeadTime(Module):
-    """Dead-time insertion
+    """Dead-time insertion.
 
     Switch mode power stage usually need to respect a proper switch-off / switch-on sequence for
     each of the power switches to avoid damage to the hardware.
     By inserting a "dead time" between a power switch turn-off and it's complementary switch
     turn-on, cross-conduction can be avoided.
 
-    parameters:
-    - resolution: size of the counter in bits
-
-    inputs:
-    - input: typically from Pwm().output
-    - deadtime: deadtime duration is 'deadtime' + 1 clk cycle.
-
-    outputs:
-    - out_h: is '1' when input == '1' and deadtime elapsed
-    - out_l: is '1' when input == '0' and deadtime elapsed
     This module takes a single input, and creates two outputs, `out_h` and `out_l`.
     `out_h` has the same sign as `input`, while `out_l` is inverted.
+
+    :param resolution: size of the counter in bits
+    :type resolution: int
+
+    :inputs:
+        - **input** (*Singnal()*): typically from Pwm().output
+        - **deadtime** (*Singnal(resolution)*): deadtime duration is 'deadtime' + 1 clk cycle.
+
+    :outputs:
+        - **out_h** (*Signal()*): is '1' when input == '1' and deadtime elapsed
+        - **out_l** (*Signal()*): is '1' when input == '0' and deadtime elapsed
     """
     def __init__(self, resolution: int):
         self.input = Signal()
@@ -59,7 +62,7 @@ class DeadTime(Module):
 
 
 class PulseGuard(Module):
-    """Pulse Guard
+    """Ensure minimum and maximum pulse length are respected.
 
     This module enables to lenghten or shorten a stream of pulses (such as a PWM or delta-sigma
     modulated signal).
@@ -70,18 +73,19 @@ class PulseGuard(Module):
     This allows filtering of noisy command signal before a switch-mode power stage like a motor
     control power bridge.
 
-    parameters:
-    - resolution: size of the counter in bits
-    - settings_sync: if True, PWM settings are updated once per cycle. Ensures no glitch can appear
-      on the output
+    :type resolution: int
+    :param resolution: size of the counter in bits
+    :param settings_sync: if True, PWM settings are updated once per cycle. Ensures no glitch can appear
+                          on the output
+    :type settings_sync: bool
 
-    inputs:
-    - input: typically Pwm().output
-    - min_pulse[resolution]: min pulse duration
-    - max_pulse[resolution]: max pulse duration
+    :inputs:
+        - **input** (*Signal()*): typically Pwm().output
+        - **min_pulse** (*Signal(resolution)*): min pulse duration
+        - **max_pulse** (*Signal(resolution)*): max pulse duration
 
-    outputs:
-    - output: pulse-guarded signal
+    :outputs:
+        - **output* (*Signal()*): pulse-guarded signal
     """
     def __init__(self, resolution: int, settings_sync=False):
         self.input = Signal()
@@ -133,20 +137,22 @@ class PulseGuard(Module):
 
 
 class Pwm(Module):
-    """Pulse-Width Modulator
+    """Pulse-Width Modulator.
 
-    parameters:
-    - resolution: size of the counter in bits
+    Generates a rectangular wave of fixed period. '1'/'0' output ratio = duty_cycle/period
 
-    inputs:
-    - period[resolution]: length of the entire PWM cycle
-    - duty_cycle[resolution]: length of the '1' output state. If 0, output stays at 0 all the time.
-    - center_mode: if '1', the PWM counter will count up and down
+    :param resolution: size of the counter in bits
+    :type resolution: int
 
-    outputs:
-    - output: PWM output
-    - up_cnt: in center mode, '1' when the counter is incrementing
-    - cycle_update: '1' for 1 clk tick, once per PWM period
+    :inputs:
+        - **period** (*Signal(resolution)*): length of the entire PWM cycle
+        - **duty_cycle** (*Signal(resolution)*): length of the '1' output state. If 0, output stays at 0 all the time.
+        - **center_mode** (*Signal()*): if '1', the PWM counter will count up and down
+
+    :outputs:
+        - **output** (*Signal()*): PWM output
+        - **up_cnt** (*Signal()*): in center mode, '1' when the counter is incrementing
+        - **cycle_update** (*Signal()*): '1' for 1 clk tick, once per PWM period
     """
     def __init__(self, resolution: int, sync_update=False):
         self.period = Signal(resolution)

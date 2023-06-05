@@ -1,6 +1,6 @@
 # Hardware Motion and Motor Control Library
 This package has building blocks related to Motor and Motion Control. When combining them, it's possible to create various systems from a simple Step/Dir motion planner to driver stepper motor controllers, up to a fully-fledged, high-performance multi-axis servomotor controller.
-It uses [migen](https://github.com/m-labs/migen) to generate [Verilog](https://en.wikipedia.org/wiki/Verilog) that will typically be synthetized in an FPGA, possibly using [LiteX](github.com/enjoy-digital/litex) as the build system.
+It uses [migen](https://github.com/m-labs/migen) to generate [Verilog](https://en.wikipedia.org/wiki/Verilog) that will typically be synthetized in an FPGA, possibly using [LiteX](https://github.com/enjoy-digital/litex) as the build system.
 
 ## Hardware vs Software Motor and Motion Control advantages
 CPUs typically aren't very good at performing high-frequency (>1MHz), low-jitter tasks.
