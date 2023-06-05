@@ -1,11 +1,3 @@
-"""
-Verilator bindings
-==================
-
-Verilator is a high performance Verilog to cpp simulator converter.
-This wrapper simplifies building a simulator from a Migen HDL and a CPP testbench.
-"""
-
 import os
 from datetime import datetime
 from pathlib import Path
@@ -18,9 +10,12 @@ from os import makedirs
 
 
 class ModuleVerilog(Module):
-    """Migen Module easy to convert to Verilog"""
+    """Easy to convert Migen Module"""
     def verilog(self, filename):
         """Convert the Module to Verilog and write it on disk.
+
+        :param filename: path to the file to write the Verilog to
+        :type filename: str or Path
 
         The Module must have either a self._ios set() containing all IO Signal() and Record(), or a
         self.get_ios() function that return the same.
@@ -45,9 +40,8 @@ class ModuleVerilog(Module):
             f.write(str(v))
 
 
-# Migen to Verilog conversion
 class RawVerilog(Special):
-    """Allows to inject raw Verilog.
+    """Allows to inject raw Verilog in a Module.
 
     :param verilog: raw verilog to inject
     :type verilog: str
@@ -66,6 +60,9 @@ class VerilatorVcdDirective(RawVerilog):
     This is an easy alternative to using a VerilatedVcdC object. It requires '--trace' to be passed
     when building (CMake) the testbench, and to pass the '+trace' argument when running the
     testbench executable.
+
+    :param path: path to the VCD file
+    :type path: str or Path
     """
     def __init__(self, path):
         super().__init__(
@@ -120,6 +117,8 @@ class VerilatorBuilder:
 
         :param exec_name: testbench executable name
         :type exec_name: str or Path
+        :param call: if True, call CMake
+        :type call: bool
         """
         # Make sure the build path exists
         buildpath = self.build_path.joinpath('build')

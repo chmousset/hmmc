@@ -1,15 +1,3 @@
-"""
-Pulse Width Modulator
-=====================
-
-PWM is typically used to modulate voltage applied on inductive loads such as motor phases, as the
-inductive load smoothens the current. The average (DC) current flowing through the inductive load is
-roughly equivalent as if a DC voltage of Vbus*duty_cycle/period was applied.
-The PWM can then be seen as a digital to analog converter.
-
-Contrary to deltasigma modulation, the PWM output frequency reduces with frequency and allows a good
-balance between resolution and switching losses in power applications.
-"""
 from migen import Module, Signal, If, NextState, NextValue, FSM
 
 
@@ -73,8 +61,8 @@ class PulseGuard(Module):
     This allows filtering of noisy command signal before a switch-mode power stage like a motor
     control power bridge.
 
-    :type resolution: int
     :param resolution: size of the counter in bits
+    :type resolution: int
     :param settings_sync: if True, PWM settings are updated once per cycle. Ensures no glitch can
         appear on the output
     :type settings_sync: bool
@@ -85,7 +73,7 @@ class PulseGuard(Module):
         - **max_pulse** (*Signal(resolution)*): max pulse duration
 
     :outputs:
-        - **output* (*Signal()*): pulse-guarded signal
+        - **output** (*Signal()*): pulse-guarded signal
     """
     def __init__(self, resolution: int, settings_sync=False):
         self.input = Signal()
