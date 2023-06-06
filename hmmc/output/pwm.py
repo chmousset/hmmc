@@ -16,12 +16,15 @@ class DeadTime(Module):
     :type resolution: int
 
     :inputs:
-        - **input** (*Singnal()*): typically from Pwm().output
-        - **deadtime** (*Singnal(resolution)*): deadtime duration is 'deadtime' + 1 clk cycle.
+        - **input** ( :class:`migen.fhdl.structure.Signal` ): typically from Pwm().output
+        - **deadtime** ( :class:`migen.fhdl.structure.Signal` (resolution)): deadtime duration is
+          'deadtime' + 1 clk cycle.
 
     :outputs:
-        - **out_h** (*Signal()*): is '1' when input == '1' and deadtime elapsed
-        - **out_l** (*Signal()*): is '1' when input == '0' and deadtime elapsed
+        - **out_h** ( :class:`migen.fhdl.structure.Signal` ): is '1' when input == '1' and deadtime
+          elapsed
+        - **out_l** ( :class:`migen.fhdl.structure.Signal` ): is '1' when input == '0' and deadtime
+          elapsed
     """
     def __init__(self, resolution: int):
         self.input = Signal()
@@ -68,12 +71,12 @@ class PulseGuard(Module):
     :type settings_sync: bool
 
     :inputs:
-        - **input** (*Signal()*): typically Pwm().output
-        - **min_pulse** (*Signal(resolution)*): min pulse duration
-        - **max_pulse** (*Signal(resolution)*): max pulse duration
+        - **input** ( :class:`migen.fhdl.structure.Signal` ): typically Pwm().output
+        - **min_pulse** ( :class:`migen.fhdl.structure.Signal` (resolution))): min pulse duration
+        - **max_pulse** ( :class:`migen.fhdl.structure.Signal` (resolution))): max pulse duration
 
     :outputs:
-        - **output** (*Signal()*): pulse-guarded signal
+        - **output** ( :class:`migen.fhdl.structure.Signal` ): pulse-guarded signal
     """
     def __init__(self, resolution: int, settings_sync=False):
         self.input = Signal()
@@ -133,15 +136,20 @@ class Pwm(Module):
     :type resolution: int
 
     :inputs:
-        - **period** (*Signal(resolution)*): length of the entire PWM cycle
-        - **duty_cycle** (*Signal(resolution)*): length of the '1' output state. If 0, output stays
+        - **period** ( :class:`migen.fhdl.structure.Signal` (resolution))): length of the entire PWM
+          cycle
+        - **duty_cycle** ( :class:`migen.fhdl.structure.Signal` (resolution))): length of the '1'
+          output state. If 0, output stays
           at 0 all the time.
-        - **center_mode** (*Signal()*): if '1', the PWM counter will count up and down
+        - **center_mode** ( :class:`migen.fhdl.structure.Signal` ): if '1', the PWM counter will
+          count up and down
 
     :outputs:
-        - **output** (*Signal()*): PWM output
-        - **up_cnt** (*Signal()*): in center mode, '1' when the counter is incrementing
-        - **cycle_update** (*Signal()*): '1' for 1 clk tick, once per PWM period
+        - **output** ( :class:`migen.fhdl.structure.Signal` ): PWM output
+        - **up_cnt** ( :class:`migen.fhdl.structure.Signal` ): in center mode, '1' when the counter
+          is incrementing
+        - **cycle_update** ( :class:`migen.fhdl.structure.Signal` ): '1' for 1 clk tick, once per
+          PWM period
     """
     def __init__(self, resolution: int, sync_update=False):
         self.period = Signal(resolution)

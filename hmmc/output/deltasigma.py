@@ -8,10 +8,11 @@ class DeltaSigma(Module):
     :type resolution: int
 
     :inputs:
-        - **input** (*Signal(resolution)*) - digital value to convert to pulse-density
+        - **input** ( :class:`migen.fhdl.structure.Signal` (resolution))) - digital value to convert
+          to pulse-density
 
     :outputs:
-        - **output** (*Signal()*) - pulse density modulated output
+        - **output** ( :class:`migen.fhdl.structure.Signal` ) - pulse density modulated output
     """
     def __init__(self, resolution):
         self.input = Signal(resolution, name="input")

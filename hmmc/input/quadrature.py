@@ -13,14 +13,17 @@ class QEI(Module):
     :type used_index: bool
 
     :inputs:
-        - **a** (*Signal()*) - quadrature input a
-        - **b** (*Signal()*) - quadrature input b
-        - **i** (*Signal()*) - index input, used is use_index is True
+        - **a** ( :class:`migen.fhdl.structure.Signal` ) - quadrature input a
+        - **b** ( :class:`migen.fhdl.structure.Signal` ) - quadrature input b
+        - **i** ( :class:`migen.fhdl.structure.Signal` ) - index input, used is use_index is True
 
     :outputs:
-        - **position** (*Signal(resolution)*) - position retreived from the quadrature input
-        - **index_position** (*Signal(resolution)*) - captured position at last index mark
-        - **index_capture** (*Signal()*) - '1' when the encoder is at the index mark
+        - **position** ( :class:`migen.fhdl.structure.Signal` (resolution))) - position retreived
+          from the quadrature input
+        - **index_position** ( :class:`migen.fhdl.structure.Signal` (resolution))) - captured
+          position at last index mark
+        - **index_capture** ( :class:`migen.fhdl.structure.Signal` ) - '1' when the encoder is at
+          the index mark
     """
     def __init__(self, resolution: int, used_index=False):
         """Construct a :obj:`QEI` object.

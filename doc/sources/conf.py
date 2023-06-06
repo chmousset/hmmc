@@ -25,6 +25,7 @@ extensions = [
     'sphinxcontrib.svgbob',
     'sphinx.ext.graphviz',
     'sphinx.ext.todo',
+    'sphinx.ext.intersphinx',
 ]
 
 templates_path = ['_templates']
@@ -47,6 +48,10 @@ autodoc_default_options = {
 # -- Options for todo --------------------------------------------------------
 todo_include_todos = True
 todo_emit_warnings = True
+
+# -- Option for Intersphinx --------------------------------------------------
+intersphinx_mapping = {'migen': ('https://m-labs.hk/migen/manual/', None)}
+
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output

@@ -26,12 +26,12 @@ class Sinc3(Module):
     :type resolution: int
 
     :inputs:
-        - **input** (*Signal()*) - data input
-        - **input_valid** (*Signal()*) - data input valid
+        - **input** ( :class:`migen.fhdl.structure.Signal` ) - data input
+        - **input_valid** ( :class:`migen.fhdl.structure.Signal` ) - data input valid
 
     :outputs:
-        - **output** (*Signal(resolution)*) - filtered output value
-        - **output_valid** (*Signal()*) - filtered output value valid
+        - **output** ( :class:`migen.fhdl.structure.Signal` (resolution))) - filtered output value
+        - **output_valid** ( :class:`migen.fhdl.structure.Signal` ) - filtered output value valid
     """
     def __init__(self, resolution):
         self.input = Signal()
@@ -52,12 +52,13 @@ class IIR_lp(Module):
     :type damping_coef: float
 
     :inputs:
-        - **input** (*Signal()*) - data input
-        - **input_valid** (*Signal()*) - data input valid
+        - **input** ( :class:`migen.fhdl.structure.Signal` ) - data input
+        - **input_valid** ( :class:`migen.fhdl.structure.Signal` ) - data input valid
 
     :outputs:
-        - **output** (*Signal(resolution)*) - filtered output value
-        - **output_valid** (*Signal()*) - filtered output value valid (always '1')
+        - **output** ( :class:`migen.fhdl.structure.Signal` (resolution))) - filtered output value
+        - **output_valid** ( :class:`migen.fhdl.structure.Signal` ) - filtered output value valid
+          (always '1')
     """
     def __init__(self, resolution, damping_coef):
         self.input = Signal()
@@ -110,7 +111,8 @@ class SigmaDelta(Module):
         - **input** (*list(Signal())*) - all the different inputs
 
     :outputs:
-        - **clk_out** (*Signal()*) - clock driving the sigma delta generator
+        - **clk_out** ( :class:`migen.fhdl.structure.Signal` ) - clock driving the sigma delta
+          generator
         - **output** (*list(Signal(resolution))*) - converted signals
         - **output_valid** (*list(Signal())*) - converted signals valid
     """

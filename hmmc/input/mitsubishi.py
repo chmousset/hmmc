@@ -14,19 +14,24 @@ class ECNMEncoder(Module):
     :type fclk: int
 
     :inputs:
-        - **rx** (*Signal(8)*) - serial receive data (from UART)
-        - **rx_valid** (*Signal()*) - serial receive data valid (from UART)
-        - **tx_idle** (*Signal()*) - uart is not busy sending, TX line is idle (1)
+        - **rx** ( :class:`migen.fhdl.structure.Signal` (8))) - serial receive data (from UART)
+        - **rx_valid** ( :class:`migen.fhdl.structure.Signal` ) - serial receive data valid (from
+          UART)
+        - **tx_idle** ( :class:`migen.fhdl.structure.Signal` ) - uart is not busy sending, TX line
+          is idle (1)
 
     :outputs:
-        - **tx** (*Signal(8)*) - serial transmit data (to UART)
-        - **tx_valid** (*Signal()*) - serial transmit data valid (to UART)
-        - **rx_ready** (*Signal()*) - ECNMEncoder is ready to receive UART data, and txe should be
+        - **tx** ( :class:`migen.fhdl.structure.Signal` (8))) - serial transmit data (to UART)
+        - **tx_valid** ( :class:`migen.fhdl.structure.Signal` ) - serial transmit data valid (to
+          UART)
+        - **rx_ready** ( :class:`migen.fhdl.structure.Signal` ) - ECNMEncoder is ready to receive
+          UART data, and txe should be
           set to 0
-        - **position** (*Signal(24)*) - position output
-        - **position_valid** (*Signal()*) - position output valid
-        - **error** (*Signal()*) - set to '1' when any error happens
-        - **cs_error** (*Signal()*) - '1' when a checksum error is detected
+        - **position** ( :class:`migen.fhdl.structure.Signal` (24))) - position output
+        - **position_valid** ( :class:`migen.fhdl.structure.Signal` ) - position output valid
+        - **error** ( :class:`migen.fhdl.structure.Signal` ) - set to '1' when any error happens
+        - **cs_error** ( :class:`migen.fhdl.structure.Signal` ) - '1' when a checksum error is
+          detected
     """
 
     baudrate = 2500000

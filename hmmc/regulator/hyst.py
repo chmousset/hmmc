@@ -17,12 +17,15 @@ class HystRegulatorBitSerial(Module, AutoDoc):
     :type hyst_default: int
 
     :inputs:
-        - **setpoint** (*Signal()*) - Pulse Density setpoint
-        - **feedback** (*Signal()*) - Pulse Density feedback
-        - **hyst_increase** (*Signal()*) - when '1', increase the hysteresis by 1
-        - **hyst_decrease** (*Signal()*) - when '1', decrese the hysteresis by 1
+        - **setpoint** ( :class:`migen.fhdl.structure.Signal` ) - Pulse Density setpoint
+        - **feedback** ( :class:`migen.fhdl.structure.Signal` ) - Pulse Density feedback
+        - **hyst_increase** ( :class:`migen.fhdl.structure.Signal` ) - when '1', increase the
+          hysteresis by 1
+        - **hyst_decrease** ( :class:`migen.fhdl.structure.Signal` ) - when '1', decrese the
+          hysteresis by 1
     :outputs:
-        - **output** (*Signal()*) - '1' if the feedback is inferior to the setpoint
+        - **output** ( :class:`migen.fhdl.structure.Signal` ) - '1' if the feedback is inferior to
+          the setpoint
     """
     def __init__(self, hyst_resolution, hyst_default):
         assert hyst_default >= 1
