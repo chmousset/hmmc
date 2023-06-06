@@ -14,8 +14,8 @@ class DeltaSigma(Module):
         - **output** (*Signal()*) - pulse density modulated output
     """
     def __init__(self, resolution):
-        self.input = Signal(resolution)
-        self.output = Signal()
+        self.input = Signal(resolution, name="input")
+        self.output = Signal(name="output")
 
         # # #
         cnt = Signal(resolution)

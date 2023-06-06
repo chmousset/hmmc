@@ -43,6 +43,11 @@ autodoc_default_options = {
 
 # -- Options for Wavedrom ----------------------------------------------------
 
+
+# -- Options for todo --------------------------------------------------------
+todo_include_todos = True
+todo_emit_warnings = True
+
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 

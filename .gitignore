@@ -6,3 +6,4 @@ build/
 _autosummary/
 _build/
 .pytest_cache/
+/*.png
