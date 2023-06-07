@@ -6,9 +6,10 @@
    :hidden:
 
    Home page <self>
-   Input Modules <api_input>
-   Output Modules <api_output>
+   Input Modules <input>
+   Output Modules <output>
    Regulator Modules <regulator>
+   Math <math>
    Utilities <utils>
 
 .. todolist::
