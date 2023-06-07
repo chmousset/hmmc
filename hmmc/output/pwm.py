@@ -27,10 +27,10 @@ class DeadTime(Module):
           elapsed
     """
     def __init__(self, resolution: int):
-        self.input = Signal()
-        self.deadtime = Signal(resolution)
-        self.out_h = Signal()
-        self.out_l = Signal()
+        self.input = Signal(name="input")
+        self.deadtime = Signal(resolution, name="deadtime")
+        self.out_h = Signal(name="out_h")
+        self.out_l = Signal(name="out_l")
 
         # # #
 

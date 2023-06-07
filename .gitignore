@@ -7,3 +7,6 @@ _autosummary/
 _build/
 .pytest_cache/
 /*.png
+vivado*
+*.log
+*.jou

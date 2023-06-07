@@ -1,29 +1,31 @@
-#!/usr/bin/env python3
-
 import argparse
-from migen.build.generic_platform import Subsignal, Pins
-from migen import Module, If, Signal
-from migen.build.platforms.icestick import Platform
+import subprocess
+from migen.build.platforms.arty_a7 import Platform
+from migen import Module, If, Signal, ClockDomain, Instance
+from migen.genlib.resetsync import AsyncResetSynchronizer
 from hmmc.output.pwm import Pwm
 
-_ios = [
-    ("pwm", 0,
-        Subsignal("out", Pins("GPIO1:0")),
-    ),
-]
+
+class _CRG(Module):
+    def __init__(self, platform):
+        clk = platform.request("clk100")
+        rst_btn = platform.request("user_btn")
+        self.clock_domains.cd_sys = ClockDomain("sys")
+        self.specials += AsyncResetSynchronizer(self.cd_sys, rst_btn)
+        self.specials += Instance("BUFG", i_I=clk, o_O=self.cd_sys.clk)
 
 
 class Top(Module):
     def __init__(self, platform, with_pwm=False):
-        platform.add_extension(_ios)
+        self.submodules += _CRG(platform)
 
         # Simple PWM generator. Creates a 'breathing' pattern on the LED D1
         if with_pwm:
-            self.submodules.pwm = pwm = Pwm(resolution=11)
+            resolution = 13
+            self.submodules.pwm = pwm = Pwm(resolution=resolution)
             self.comb += [
-                pwm.period.eq(2047),
+                pwm.period.eq(2**resolution - 1),
                 platform.request("user_led", 0).eq(pwm.output),
-                platform.request("pwm", 0).out.eq(pwm.output),
             ]
             down = Signal()
             self.sync += [
@@ -44,12 +46,10 @@ class Top(Module):
                 )
             ]
 
-
 if __name__ == '__main__':
-    def auto_int(x):
-        return int(x, 0)
     parser = argparse.ArgumentParser("Icestick NewMot demo")
     parser.add_argument("--build", "-b", action="store_true", help="build the FPGA")
+    parser.add_argument("--load", "-l", action="store_true", help="configure the FPGA")
     parser.add_argument("--flash", "-f", action="store_true", help="flash the FPGA")
     parser.add_argument("--pwm", action="store_true", help="Add PWM controller")
     args = parser.parse_args()
@@ -61,6 +61,14 @@ if __name__ == '__main__':
     )
 
     if args.build:
-        plat.build(soc, build_dir="build/icestick")
+        plat.build(soc, build_dir="build/arty_a7")
+    if args.load:
+        try:
+            plat.create_programmer().load_bitstream("build/arty_a7/top.bin")
+        except:
+            subprocess.run("openFPGALoader -b arty -m build/arty_a7/top.bit")
     if args.flash:
-        plat.create_programmer().flash(0, "build/icestick/top.bin")
+        try:
+            plat.create_programmer().flash(0, "build/arty_a7/top.bin")
+        except:
+            subprocess.run("openFPGALoader -b arty -f build/arty_a7/top.bit")
