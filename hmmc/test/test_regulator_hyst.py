@@ -2,7 +2,7 @@ import unittest
 import inspect
 import importlib.util
 from math import pi, cos, atan
-from hmmc.regulator.hyst import HystRegulatorBitSerial
+from hmmc.regulator.hyst import HystRegulatorBitSerial, TriHystRegulatorBitSerial
 from migen import run_simulation, passive, Module
 from hmmc.output.deltasigma import DeltaSigma
 
@@ -29,14 +29,14 @@ class Dut(Module):
         ]
 
 
-class TestRegulatorHyst(unittest.TestCase):
+class TestRegulatorHystBase(unittest.TestCase):
     @passive
     def lpf(self, dut):
         # Emulate the current in an inductor
         dut.I_int = 0.0
         I_l = 0.1
         R = 10
-        L = 1e-3 * FCLK
+        L = 5e-3 * FCLK
         U = 400
         while True:
             u = U if (yield dut.reg.output) else -1 * U
@@ -68,7 +68,7 @@ class TestRegulatorHyst(unittest.TestCase):
             yield dut.setpoint.input.eq(int(s2u(amplitude * cos(phase_speed * i) + offset)))
             yield
 
-    def check_fft(self, dut, fclk, amplitude, offset, frequency, sin_cycles, tolerance):
+    def check_fft(self, dut, fclk, amplitude, offset, frequency, sin_cycles, tolerance, filename):
         from numpy.fft import fft
         import numpy as np
 
@@ -97,20 +97,12 @@ class TestRegulatorHyst(unittest.TestCase):
         # calculate phase of the current at the setpoint frequency. Should be close to 0.
         phase_tolerance = 2 * pi * 20 / 360
         phase_freq = atan(i_fft.imag[index_freq] / i_fft.real[index_freq])
-        self.assertGreaterEqual(abs(phase_freq) + phase_tolerance, i_freq)
-        self.assertGreaterEqual(i_freq, abs(phase_freq) - phase_tolerance)
-
-        self.assertEqual(index_freq, sin_cycles)
-        self.assertGreaterEqual(amplitude + tolerance, i_freq)
-        self.assertGreaterEqual(i_freq, amplitude - tolerance)
-        self.assertGreaterEqual(offset + tolerance, i_avg)
-        self.assertGreaterEqual(i_avg, offset - tolerance)
 
         try:
             import matplotlib.pyplot as plt
             plt.figure(figsize=(12, 10))
             plt.plot(current)
-            plt.savefig("test_regulator_hyst_sin_current.png")
+            plt.savefig(f"{filename}_current.png")
             plt.clf()
 
             plt.plot(f_oneside, np.abs(i_fft.real), 'b')
@@ -122,24 +114,32 @@ class TestRegulatorHyst(unittest.TestCase):
             plt.suptitle('Current FFT')
             plt.title(f"setpoint: offset={offset} amplitude={amplitude};"
                       f" readback: {i_avg:0.4f} {i_freq:0.4f} phase {phase_freq:0.4f}")
-            plt.savefig("test_regulator_hyst_sin_fft.png")
+            plt.savefig(f"{filename}_fft.png")
             plt.clf()
         except ImportError:
             pass
 
-    def test_regulator_hyst_average(self):
+        self.assertGreaterEqual(abs(phase_freq) + phase_tolerance, i_freq)
+        self.assertGreaterEqual(i_freq, abs(phase_freq) - phase_tolerance)
+
+        self.assertEqual(index_freq, sin_cycles)
+        self.assertGreaterEqual(amplitude + tolerance, i_freq)
+        self.assertGreaterEqual(i_freq, amplitude - tolerance)
+        self.assertGreaterEqual(offset + tolerance, i_avg)
+        self.assertGreaterEqual(i_avg, offset - tolerance)
+
+    def _test_regulator_hyst_average(self, dut, tolerance, filename):
         setpoint = 0.25
         itegration_period = 1000
         tolerance = 0.05
-        dut = Dut()
         run_simulation(dut, [
             self.lpf(dut),
             self.set_setpoint(dut, setpoint),
             self.check_current(dut, setpoint, itegration_period, tolerance)],
-            vcd_name=inspect.stack()[0][3] + ".vcd",
+            vcd_name=f"{filename}.vcd",
             clocks={"sys": 1e9 / FCLK})
 
-    def test_regulator_hyst_sine(self):
+    def _test_regulator_hyst_sine(self, dut, tolerance, filename):
         spam_spec = importlib.util.find_spec("numpy")
         if spam_spec is None:
             # Don't perform this test if numpy is installed, as it's quite slow and probably should
@@ -148,14 +148,63 @@ class TestRegulatorHyst(unittest.TestCase):
 
         amplitude = 0.25
         offset = 0.1
-        frequency = 10e3
-        fclk = frequency * 1024 * 8
-        sin_cycles = 4
-        tolerance = 0.01
-        dut = Dut()
+        frequency = 400  # 6000 RMP for a 4 poles PMSM motor
+        fclk = frequency * 1024 * 32
+        sin_cycles = 1
+        # tolerance = 0.01
         run_simulation(dut, [
             self.lpf(dut),
             self.sine_setpoint(dut, fclk, amplitude, offset, frequency, sin_cycles),
-            self.check_fft(dut, fclk, amplitude, offset, frequency, sin_cycles, tolerance)],
-            vcd_name=inspect.stack()[0][3] + ".vcd",
+            self.check_fft(dut, fclk, amplitude, offset, frequency, sin_cycles, tolerance,
+                           filename)],
+            vcd_name=f"{filename}.vcd",
             clocks={"sys": 1e9 / FCLK})
+
+
+class TestRegulatorHyst(TestRegulatorHystBase):
+    def test_regulator_hyst_average(self):
+        dut = Dut()
+        self._test_regulator_hyst_average(dut, 0.01, inspect.stack()[0][3])
+
+    def test_regulator_hyst_sine(self):
+        dut = Dut()
+        self._test_regulator_hyst_sine(dut, 0.01, inspect.stack()[0][3])
+
+
+class DutTri(Module):
+    def __init__(self):
+        self.submodules.reg = TriHystRegulatorBitSerial(RESOLUTION, 3)
+        self.submodules.setpoint = DeltaSigma(RESOLUTION)
+        self.submodules.adc_feedback = DeltaSigma(RESOLUTION)
+        self.comb += [
+            self.reg.feedback.eq(self.adc_feedback.output),
+            self.reg.setpoint.eq(self.setpoint.output),
+        ]
+
+
+class TestRegulatorTriHyst(TestRegulatorHystBase):
+    @passive
+    def lpf(self, dut):
+        # Emulate the current in an inductor
+        dut.I_int = 0.0
+        I_l = 0.1
+        R = 10
+        L = 5e-3 * FCLK
+        U = 400
+        while True:
+            u = U if (yield dut.reg.output) else -1 * U
+            if (yield dut.reg.slow_decay):
+                u = 0
+            I_l += (u - R * I_l) / L
+            dut.I_l = I_l
+            yield dut.adc_feedback.input.eq(int(s2u(I_l)))
+            yield
+            dut.I_int += I_l
+
+    def test_regulator_tri_hyst_average(self):
+        dut = DutTri()
+        self._test_regulator_hyst_average(dut, 0.1, inspect.stack()[0][3])
+
+    def test_regulator_tri_hyst_sine(self):
+        dut = DutTri()
+        self._test_regulator_hyst_sine(dut, 0.1, inspect.stack()[0][3])
