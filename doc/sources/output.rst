@@ -25,7 +25,7 @@ Delta Sigma modulators are simple Digital to Analog Converters. It transforms an
 
    {signal: [
      {name: 'in', wave:  '2...2...2...2...', data: ['0', '1', '2', '3']},
-     {name: 'out', wave: '0...10..10101...'},
+     {name: 'out', wave: '0...10..10101..0'},
    ]}
 
 The modulated signal can be directly output on a digital pin, then with a simple RC low pass filter an analog voltage can be generated like so:
@@ -59,7 +59,61 @@ Module details
 Step/Dir
 --------
 
-Incremental output to drive external motor controllers like stepper motor controllers.
+Incremental output module driving a digital output pin. Can be used to drive external motor controllers like stepper motor controllers.
+
+With **Step/Dir Output**, the position is incremented on the rising edge of the `step` output, so a certain pulse duration has to be respected. `dir` output setup timing also has to be respected so that the pulses are correctly counted on the receiving end. This is the most common interface for stepper motor drivers.
+
+.. wavedrom::
+
+    {signal: [
+      {name: 'up',   wave: '010.10.10..........'},
+      {name: 'down', wave: '0.........10.10.10.'},
+      {name: 'step', wave: '0..1010.10..1010.10'},
+      {name: 'dir',  wave: '0.1........0.......'},
+      {name: 'cnt',  wave: '=..=.=..=...=.=..=.', data: ['0', '1', '2', '3', '2', '1', '0']},
+    ],
+    "config": { "hscale": 1 }
+    }
+
+
+.. svgbob::
+   :align: center
+
+           +----------------------------------+
+           |             StepDir              |
+           |==================================|
+    sig -->|up                           step |--> pin
+    sig -->|down                          dir |--> pin
+           |                                  |
+    sig -->|(pulse_duration )                 |
+    sig -->|(turnaround_duration )            |
+           +----------------------------------+
+
+**Quadrature** output is the opposite of :class:`hpcnc.input.quadrature.QEI`.
+
+.. wavedrom::
+
+    {signal: [
+      {name: 'up',   wave: '010.10.10..........'},
+      {name: 'down', wave: '0.........10.10.10.'},
+      {name: 'a',    wave: '0....1........0....'},
+      {name: 'b',    wave: '0.1.....0..1......0'},
+      {name: 'cnt',  wave: '=.=..=..=..=..=...=.', data: ['0', '1', '2', '3', '2', '1', '0']},
+    ],
+    "config": { "hscale": 1 }
+    }
+
+
+.. svgbob::
+   :align: center
+
+           +----------------------------------+
+           |            Quadrature            |
+           |==================================|
+    sig -->|up                              a |--> pin
+    sig -->|down                            b |--> pin
+           +----------------------------------+
+
 
 Module details
 **************

@@ -5,7 +5,7 @@ from migen.fhdl.bitcontainer import bits_for
 class Quadrature(Module):
     """transforms up/down signals into Quadrature outputs
 
-    .. TODO::
+    .. note::
 
         There is no timing check. Normally, if up and down are followed closely, if ever a short
         pulse isn't registered by the receiver, the position should remain unchanged. However, there
@@ -77,6 +77,12 @@ class Quadrature(Module):
 
 class StepDir(Module):
     """transforms up/down signals into Step/Dir outputs
+
+    .. note::
+
+        This module will keep timings for up to +3/-4 'in flight' pulses. If the up/down period is
+        lower than period = (3 + pulse_duration * 2 + turnaround_duration), step loss is expected.
+        Make sure the period between 3 consecutive up or 3 consecutive down pulses are >= 3 * period
 
     :param pulse_duration: duration, in clock ticks, of a STEP pulse
     :type pulse_duration: int
