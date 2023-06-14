@@ -54,3 +54,15 @@ Module details
 
 .. automodule:: hmmc.output.deltasigma
    :members:
+
+
+Step/Dir
+--------
+
+Incremental output to drive external motor controllers like stepper motor controllers.
+
+Module details
+**************
+
+.. automodule:: hmmc.output.stepdir
+   :members:
