@@ -2,13 +2,6 @@ from migen import Module, Signal, If, Cat, C, Replicate
 from hmmc.math.dsp import add_signed_detect_overflow
 
 
-def move_cmd_layout(w_position, w_speed, w_acceleration):
-    return [
-        ("target_position", (w_position, True)),
-        ("start_speed", (w_speed, True)),
-        ("acceleration", (w_acceleration, True))]
-
-
 class MotionGeneratorAxis(Module):
     """This module generates position and speed setpoints in realtime.
 
@@ -29,14 +22,14 @@ class MotionGeneratorAxis(Module):
         - **flush** (*Signal()*) - when '1', set speed to 0 and target to actual position
 
     :outputs:
-        - **cmd_ready** (*Signal()*) - '1' when 'position' == previous 'cmd_target_position'
+        - **cmd_ready** (*Signal()*) - Used for command flow control. Identical to 'done'
         - **acceleration** (*Signal(w_acceleration)*) - current acceleration
         - **position** (*Signal((w_position, True))*) - internal state
         - **speed_raw** (*Signal((w_speed + w_acceleration, True))*) - internal state
         - **speed** (*Signal(w_speed)*) - internal state
         - **down** (*Signal()*) - if '1', position decreased in this clock cycle
         - **up** (*Signal()*) - if '1', position increased in this clock cycle
-        - **done** (*Signal()*) - 'cmd_target_position' is reached
+        - **done** (*Signal()*) - 'cmd_target_position' is reached, module at idle
     """
 
     def __init__(self, w_position=20, w_speed=20, w_acceleration=20):
@@ -107,7 +100,15 @@ class MotionGeneratorAxis(Module):
         ]
 
     def perf_limits(self, fclk, resolution):
-        """Give resolution and maximum for speed and acceleration"""
+        """Give resolution and maximum for speed and acceleration for this generator
+
+        :param resolution: distance increment of a single position step (ex: 1um)
+        :type resolution: float
+
+        :returns: (speed_resolution, speed_max, accel_resolution, accel_max).
+                  The units are consistant with the one of parameter 'resolution' (ex: m->m/s, m/s²)
+        :rtype: (float, float, float, float)
+        """
         speed_res = 1 / 2**self.w_speed * resolution * fclk
         speed_max = resolution * fclk
         accel_res = 1 / 2**(self.w_speed + self.w_acceleration) * resolution * fclk**2

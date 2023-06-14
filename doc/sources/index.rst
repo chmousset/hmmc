@@ -9,6 +9,7 @@
    Input Modules <input>
    Output Modules <output>
    Regulator Modules <regulator>
+   Motion Modules <motion>
    Math <math>
    Utilities <utils>
 
