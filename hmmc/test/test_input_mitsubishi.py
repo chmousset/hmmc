@@ -5,6 +5,8 @@ from migen import run_simulation, passive
 
 
 class TestMitsubishi(unittest.TestCase):
+    known_good_frame = [0x32, 0x21, 0x80, 0xC8, 0x46, 0x71, 0xCC, 0x80, 0x20]
+
     @passive
     def encoder(self, dut, fclk, cmd_response):
         periods_tx = int(fclk / 2.5e6 * 10) + 1
@@ -62,13 +64,12 @@ class TestMitsubishi(unittest.TestCase):
             yield
             self.assertGreaterEqual(timeout_cnt, 0)
             timeout_cnt -= 1
-        self.assertEqual(got_cs_err, True, msg="Timeout waiting for position_valid")
+        self.assertEqual(got_cs_err, True, msg="Timeout waiting for cs_error")
 
     def encoder_timeout(self, dut, timeout_cnt):
         assert timeout_cnt > 1
         for _ in range(timeout_cnt):
             self.assertEqual((yield dut.position_valid), 0)
-            self.assertEqual((yield dut.cs_error), 0)
             yield
 
     def assert_critical_error(self, dut, timeout_cnt):
@@ -88,19 +89,20 @@ class TestMitsubishi(unittest.TestCase):
         fclk = 5e6
         dut = ECNMEncoder(fclk)
         dut.idle = dut.fsm.ongoing("IDLE")
-        cmd_response = {0x32: self.add_cs([0x32, 0xde, 0xad, 0xbe, 0xef])}
-        timeout = int(fclk / dut.baudrate) * 10 * (6 + 5)
+        self.assertEqual(self.known_good_frame, self.add_cs(self.known_good_frame[:-1]))
+        cmd_response = {0x32: self.known_good_frame}
+        timeout = int(fclk / dut.baudrate) * 10 * (9 + 5)
         run_simulation(dut, [
             self.encoder(dut, fclk, cmd_response),
-            self.encoder_ok_check(dut, 0xefbead, timeout)],
+            self.encoder_ok_check(dut, 0x46C880, timeout)],
             vcd_name=inspect.stack()[0][3] + ".vcd")
 
     def test_input_mitsubishi_cs_error(self):
         fclk = 5000_000
         dut = ECNMEncoder(fclk)
         dut.idle = dut.fsm.ongoing("IDLE")
-        cmd_response = {0x32: self.add_cs([0x32, 0, 0xde, 0xad, 0xbe], True)}
-        timeout = int(fclk / dut.baudrate) * 10 * (6 + 5)
+        cmd_response = {0x32: self.add_cs(self.known_good_frame[:-1], True)}
+        timeout = int(fclk / dut.baudrate) * 10 * (9 + 5)
         run_simulation(dut, [
             self.encoder(dut, fclk, cmd_response),
             self.encoder_cs_error_check(dut, timeout)],
@@ -110,8 +112,8 @@ class TestMitsubishi(unittest.TestCase):
         fclk = 5000_000
         dut = ECNMEncoder(fclk)
         dut.idle = dut.fsm.ongoing("IDLE")
-        cmd_response = {0x32: [0x32, 0, 0xde, 0xad, 0xbe]}  # missing a byte
-        timeout = int(fclk / dut.baudrate) * 10 * (5 + 5)
+        cmd_response = {0x32: self.known_good_frame[:-1]}  # missing a byte
+        timeout = int(fclk / dut.baudrate) * 10 * (8 + 5)
         run_simulation(dut, [
             self.encoder(dut, fclk, cmd_response),
             self.encoder_timeout(dut, timeout)],
@@ -128,5 +130,3 @@ class TestMitsubishi(unittest.TestCase):
             self.encoder_timeout(dut, timeout),
             self.assert_critical_error(dut, timeout)],
             vcd_name=inspect.stack()[0][3] + ".vcd")
-
-        self.assertEqual((yield dut.critical_error), 1)

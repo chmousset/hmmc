@@ -51,7 +51,7 @@ class ECNMEncoder(Module):
         self.tx_valid = Signal()
         self.rx_ready = Signal()
         self.txe = Signal(reset=1)
-        self.position = Signal(24)
+        self.position = Signal(24, reset_less=True)
         self.position_valid = Signal()
         self.cs_error = Signal()
         self.error = Signal()
@@ -65,7 +65,7 @@ class ECNMEncoder(Module):
             timeout.wait.eq(~self.rx_valid & ~timeout.done),
         ]
 
-        cs = Signal(8)
+        cs = Signal(8, reset_less=True)
         error = Signal()
         self.submodules.fsm = fsm = FSM("IDLE")
         fsm.act("IDLE",
@@ -89,13 +89,13 @@ class ECNMEncoder(Module):
                 NextValue(self.txe, 0),
             ),
             If(timeout.done,
-                NextState("IDLE"),
+                NextState("RECOVERY"),
                 error.eq(1),
             ),
             self.rx_ready.eq(self.tx_idle),
             If(self.rx_valid & self.rx_ready,
                 If(self.rx != self.cmd,
-                    NextState("IDLE"),
+                    NextState("RECOVERY"),
                     error.eq(1),
                 ).Else(
                     NextState("RECEIVE_0"),
@@ -105,7 +105,7 @@ class ECNMEncoder(Module):
         )
         fsm.act("RECEIVE_0",
             If(timeout.done,
-                NextState("IDLE"),
+                NextState("RECOVERY"),
                 error.eq(1),
             ),
             self.rx_ready.eq(1),
@@ -116,7 +116,7 @@ class ECNMEncoder(Module):
         )
         fsm.act("RECEIVE_1",
             If(timeout.done,
-                NextState("IDLE"),
+                NextState("RECOVERY"),
                 error.eq(1),
             ),
             self.rx_ready.eq(1),
@@ -128,7 +128,7 @@ class ECNMEncoder(Module):
         )
         fsm.act("RECEIVE_2",
             If(timeout.done,
-                NextState("IDLE"),
+                NextState("RECOVERY"),
                 error.eq(1),
             ),
             self.rx_ready.eq(1),
@@ -140,7 +140,7 @@ class ECNMEncoder(Module):
         )
         fsm.act("RECEIVE_3",
             If(timeout.done,
-                NextState("IDLE"),
+                NextState("RECOVERY"),
                 error.eq(1),
             ),
             self.rx_ready.eq(1),
@@ -151,17 +151,25 @@ class ECNMEncoder(Module):
             ),
         )
         fsm.act("RECEIVE_END",
+            # TODO: check that we received the correct amount of bytes?
             If(timeout.done,
-                NextState("IDLE"),
-            ),
-            self.rx_ready.eq(1),
-            If(self.rx_valid,
-                If(cs ^ self.rx == 0,  # cs should be 0 if we xor data plus checksum
+                If(cs == 0,  # cs should be 0 if we xor data plus checksum
                     self.position_valid.eq(1),
                 ).Else(
                     self.cs_error.eq(1),
                     error.eq(1),
                 ),
+                NextState("IDLE"),
+            ),
+            self.rx_ready.eq(1),
+            If(self.rx_valid,
+                NextValue(cs, cs ^ self.rx),
+            ),
+        )
+        fsm.act("RECOVERY",
+            NextValue(self.txe, 0),
+            If(timeout.done,
+                NextState("IDLE"),
             ),
         )
 

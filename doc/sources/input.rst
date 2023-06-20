@@ -84,9 +84,9 @@ Some reverse engineering work has been documented on project `stmbl <https://git
 .. wavedrom::
 
     {signal: [
-      {name: 'req', wave:  '131......|.31..', data: ['0x32', '0x32']},
-      {name: 'resp', wave: '1.345..61|..345', data: ['0x32', '', 'pos', 'cs', '0x32', '', 'pos']},
-      {name: 'txe', wave:  '1.0......|1.0..'},
+      {name: 'req', wave:  '131.........|.31.', data: ['0x32', '0x32']},
+      {name: 'resp', wave: '1.34.5..7.61|..34', data: ['0x32', '', 'pos', '', 'cs', '0x32', '', 'pos']},
+      {name: 'txe', wave:  '1.0.........|1.0.'},
     ],
     "config": { "hscale": 1 }
     }
