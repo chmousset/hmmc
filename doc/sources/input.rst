@@ -127,7 +127,7 @@ Here is an example using `LiteX RS232PHY <https://github.com/enjoy-digital/litex
 .. code-block:: python
 
    self.submodules.ecnm = ecnm = ECNMEncoder(fclk)
-   self.submodule.uart = uart = RS232PHY(platform.request("uart"), fclk, baudrate=ecnm.baudrate)
+   self.submodules.uart = uart = RS232PHY(platform.request("uart"), fclk, baudrate=ecnm.baudrate)
    self.comb += [
       uart.tx.data.eq(ecnm.tx),
       uart.tx_valid.data.eq(ecnm.tx_valid),

@@ -27,9 +27,12 @@ class ECNMEncoder(Module):
         - **rx_ready** ( :class:`migen.fhdl.structure.Signal` ) - ECNMEncoder is ready to receive
           UART data, and txe should be
           set to 0
+        - **txe** ( :class:`migen.fhdl.structure.Signal` ) - RS485 Transmit Enable control
         - **position** ( :class:`migen.fhdl.structure.Signal` (24))) - position output
         - **position_valid** ( :class:`migen.fhdl.structure.Signal` ) - position output valid
         - **error** ( :class:`migen.fhdl.structure.Signal` ) - set to '1' when any error happens
+        - **critical_error** ( :class:`migen.fhdl.structure.Signal` ) - set to '1' on two
+          consecutive errors
         - **cs_error** ( :class:`migen.fhdl.structure.Signal` ) - '1' when a checksum error is
           detected
     """
@@ -44,25 +47,29 @@ class ECNMEncoder(Module):
         self.tx_idle = Signal()
 
         # outputs
-        self.tx = Signal(8)
+        self.tx = Signal(8, reset=self.cmd)
         self.tx_valid = Signal()
         self.rx_ready = Signal()
+        self.txe = Signal(reset=1)
         self.position = Signal(24)
         self.position_valid = Signal()
         self.cs_error = Signal()
         self.error = Signal()
+        self.critical_error = Signal()
 
         # # #
 
         # we consider line silent if we waited 11 tbit without activity
         self.submodules.timeout = timeout = WaitTimer(1 + int(13 * fclk / self.baudrate))
         self.comb += [
-            timeout.wait.eq(~self.rx_valid),
+            timeout.wait.eq(~self.rx_valid & ~timeout.done),
         ]
 
         cs = Signal(8)
+        error = Signal()
         self.submodules.fsm = fsm = FSM("IDLE")
         fsm.act("IDLE",
+            NextValue(self.txe, 1),
             If(timeout.done,
                 NextState("SEND_CMD"),
                 timeout.wait.eq(0),  # reset timer
@@ -71,24 +78,25 @@ class ECNMEncoder(Module):
         )
         fsm.act("SEND_CMD",
             self.tx_valid.eq(1),
-            self.tx.eq(self.cmd),
-            If(~self.tx_idle,
+            If(self.tx_idle,
                 NextState("RECEIVE_CMD"),
             ),
         )
         fsm.act("RECEIVE_CMD",
-            If(self.tx_idle,
+            If(~self.tx_idle,
                 timeout.wait.eq(0),  # reset the counter while sending the command
+            ).Else(
+                NextValue(self.txe, 0),
             ),
             If(timeout.done,
                 NextState("IDLE"),
-                self.error.eq(1),
+                error.eq(1),
             ),
-            self.rx_ready.eq(1),
-            If(self.rx_valid,
+            self.rx_ready.eq(self.tx_idle),
+            If(self.rx_valid & self.rx_ready,
                 If(self.rx != self.cmd,
                     NextState("IDLE"),
-                    self.error.eq(1),
+                    error.eq(1),
                 ).Else(
                     NextState("RECEIVE_0"),
                     NextValue(cs, cs ^ self.rx),
@@ -98,7 +106,7 @@ class ECNMEncoder(Module):
         fsm.act("RECEIVE_0",
             If(timeout.done,
                 NextState("IDLE"),
-                self.error.eq(1),
+                error.eq(1),
             ),
             self.rx_ready.eq(1),
             If(self.rx_valid,
@@ -109,7 +117,7 @@ class ECNMEncoder(Module):
         fsm.act("RECEIVE_1",
             If(timeout.done,
                 NextState("IDLE"),
-                self.error.eq(1),
+                error.eq(1),
             ),
             self.rx_ready.eq(1),
             If(self.rx_valid,
@@ -121,7 +129,7 @@ class ECNMEncoder(Module):
         fsm.act("RECEIVE_2",
             If(timeout.done,
                 NextState("IDLE"),
-                self.error.eq(1),
+                error.eq(1),
             ),
             self.rx_ready.eq(1),
             If(self.rx_valid,
@@ -133,7 +141,7 @@ class ECNMEncoder(Module):
         fsm.act("RECEIVE_3",
             If(timeout.done,
                 NextState("IDLE"),
-                self.error.eq(1),
+                error.eq(1),
             ),
             self.rx_ready.eq(1),
             If(self.rx_valid,
@@ -144,16 +152,29 @@ class ECNMEncoder(Module):
         )
         fsm.act("RECEIVE_END",
             If(timeout.done,
-                If(cs == 0,  # cs should be 0 if we xor data plus checksum
-                    self.position_valid.eq(1),
-                ).Else(
-                    self.cs_error.eq(1),
-                    self.error.eq(1),
-                ),
                 NextState("IDLE"),
             ),
             self.rx_ready.eq(1),
             If(self.rx_valid,
-                NextValue(cs, cs ^ self.rx),
+                If(cs ^ self.rx == 0,  # cs should be 0 if we xor data plus checksum
+                    self.position_valid.eq(1),
+                ).Else(
+                    self.cs_error.eq(1),
+                    error.eq(1),
+                ),
             ),
         )
+
+        error_cnt = Signal()
+        self.sync += [
+            If(error,
+                If(error_cnt == 1,
+                    self.critical_error.eq(1),
+                ).Else(
+                    error_cnt.eq(error_cnt + 1),
+                ),
+            ).Elif(self.position_valid,
+                error_cnt.eq(0),
+                self.critical_error.eq(0),
+            ),
+        ]
