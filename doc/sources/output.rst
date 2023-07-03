@@ -131,3 +131,60 @@ Module details
 
 .. automodule:: hmmc.output.stepdir
    :members:
+
+
+Push-Pull
+---------
+Multiple isolated supplies are often required in high voltage Motor Control applications.
+
+Alternatively to ready-made isolated DC/DC converters, a discrete, low power push-pull converter can be made using 2 MOSFETs, a COTS push-pull transformer and two diodes. This can be useful to reduce losses, optimize BOM or if space is constrained.
+
+In the lowest power form, high-current FPGA IOs can be used to drive the transformer directly, in which case a full-bridge design is more desirable. Using standard Ethernet transformer, it's possible to transmit up tp 10mW of power per transformer from a 3.3V input.
+
+If higher output voltages are desirable, inductor L can be added to form an isolated boost converter.
+Then, set duty_cycle > perdiod so that the output voltage is boosted. Ethernet transformers were tested to produce >10V at over 50mW output from a 5V input, at 500kHz.
+
+.. svgbob::
+   :align: center
+
+              .------∿∿ -._    _.-->|---------.
+              |      *     )!!(     .--->|----+
+           ||-+            )!!(    |          |
+    ph_l --|+<-  V+ -∿∿ -._)!!(_.--+---+--||--+--Viso
+           ||-+      L     )!!(    |   |  C
+             _|_           )!!(    |  _|_
+             GND   .-∿∿ -._)!!(____| GNDi
+                   | *           
+                ||-+
+         ph_h --|+<-
+                ||-+
+                  _|_
+                  GND
+
+              _____
+                   |
+              F    +-∿∿ -._    _.-->|---------.
+              P    | *     )!!(     .--->|----+
+              G    |       )!!(    |          |
+              A    +-----._)!!(_.--+---+--||--+--Viso
+              _____|       )!!(    |   |  C
+                           )!!(    |  _|_
+                    -∿∿ -._)!!(____| GNDi
+                     *
+
+.. svgbob::
+   :align: center
+
+           +------------------------------------+   +----------------------+
+           |            SoftStart               |   |       PushPull       |
+           |====================================|   |======================|
+    sig -->|duty_cycle_setpoint    cycle_update |<--|cycle_update    out_l |--> pin
+    sig <--|done              duty_cycle_output |-->|duty_cycle      out_h |--> pin
+           +------------------------------------+   +----------------------+
+
+
+Module details
+**************
+
+.. automodule:: hmmc.output.pushpull
+   :members:
