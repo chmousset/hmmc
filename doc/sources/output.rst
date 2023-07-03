@@ -1,5 +1,6 @@
 Output
 ======
+
 Pulse Width Modulator
 ---------------------
 
@@ -10,6 +11,16 @@ The PWM can then be seen as a digital to analog converter.
 
 Contrary to deltasigma modulation, the PWM output frequency reduces with frequency and allows a good
 balance between resolution and switching losses in power applications.
+
+Dead Time
+---------
+
+Switch mode power stage usually need to respect a proper switch-off / switch-on sequence for
+each of the power switches to avoid damage to the hardware.
+By inserting a "dead time" between a power switch turn-off and it's complementary switch
+turn-on, cross-conduction can be avoided.
+
+hmmc provides Deadtime insertion modules for both single and complementary inputs.
 
 Module details
 **************

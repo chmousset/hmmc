@@ -48,7 +48,7 @@ class IIR_lp(Module):
 
     :param resolution: resolution of the output, in bits
     :type resolution: int
-    :param damping_coef: damping coefficient. The closer to 1, the longer the settling time. ]0; 1[
+    :param damping_coef: damping coefficient. The closer to 0, the longer the settling time. ]0; 1[
     :type damping_coef: float
 
     :inputs:
@@ -115,6 +115,13 @@ class SigmaDelta(Module):
           generator
         - **output** (*list(Signal(resolution))*) - converted signals
         - **output_valid** (*list(Signal())*) - converted signals valid
+
+    .. todo::
+
+        Currently, if **output** is not used (as with hysteretic regulators), the associated logic
+        will still be created. It might not be optimized out by the toolchain.
+        It could be interesting to instanciate the filter only during the finishing pass, giving the
+        option not to generate it.
     """
     supported_filters = {
         'sinc3': Sinc3,
@@ -129,12 +136,13 @@ class SigmaDelta(Module):
         self.input = [Signal(name=f"input_{i}") for i in range(channels)]
         self.output = [Signal(resolution, name=f"output_{i}") for i in range(channels)]
         self.output_valid = [Signal(name=f"output_{i}_valid") for i in range(channels)]
+        self.input_valid = Signal()
 
         # # #
 
         # Clock generator
         f_ratio = ceil(fclk / fout / 2)
-        data_valid = Signal()
+        input_valid = self.input_valid
         div = Signal(max=f_ratio + 1, reset=0)
         self.sync += [
             If(div == 0,
@@ -144,14 +152,14 @@ class SigmaDelta(Module):
                 div.eq(div - 1)
             )
         ]
-        self.comb += data_valid.eq((div == 0) & (self.clk_out == 1))
+        self.comb += input_valid.eq((div == 0) & (self.clk_out == 1))
 
         for i in range(channels):
             filter = self.supported_filters[filter_type](resolution, **filter_parameters)
             setattr(self.submodules, "{filter_type}_{i}", filter)
             self.comb += [
                 filter.input.eq(self.input[i]),
-                filter.input_valid.eq(data_valid),
+                filter.input_valid.eq(input_valid),
                 self.output[i].eq(filter.output),
                 self.output_valid[i].eq(filter.output_valid),
             ]

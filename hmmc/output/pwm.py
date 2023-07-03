@@ -1,13 +1,82 @@
 from migen import Module, Signal, If, NextState, NextValue, FSM
+from migen.fhdl.bitcontainer import bits_for
+from migen.fhdl.structure import _Value
+
+
+class WaitTimer(Module):
+    def __init__(self, time: _Value, resolution=None):
+        resolution if resolution is not None else time.nbits
+        self.done = Signal()
+        self.wait = Signal()
+
+        # # #
+
+        count = Signal(resolution)
+        self.comb += self.done.eq(count == 0)
+        self.sync += \
+            If(self.wait,
+                If(~self.done, count.eq(count - 1))
+            ).Else(count.eq(time))
+
+
+class DeadTimeComplementary(Module):
+    """Dead-time insertion, complementary inputs.
+
+    This module takes a two inputs, and creates two outputs which are set to 0 during the deadtime,
+    or if both inputs are high.
+
+    :param resolution: size of the counter in bits
+    :type resolution: int
+    :param default_deadtime: default deadtime, if `deadtime` is not controlled externally
+    :type default_deadtime: int
+
+    :inputs:
+        - **in_h** ( :class:`migen.fhdl.structure.Signal` ): controls `out_h`
+        - **in_l** ( :class:`migen.fhdl.structure.Signal` ): controls `out_l`
+        - **deadtime** ( :class:`migen.fhdl.structure.Signal` (resolution)): deadtime duration is
+          'deadtime' + 1 clk cycle.
+
+    :outputs:
+        - **out_h** ( :class:`migen.fhdl.structure.Signal` ): is '1' if `in_h & ~in_l` and deadtime
+          elapsed
+        - **out_l** ( :class:`migen.fhdl.structure.Signal` ): is '1' `~in_h & in_l` and deadtime
+          elapsed
+    """
+    def __init__(self, resolution: int, default_deadtime=0):
+        self.in_h = Signal(name="in_l")
+        self.in_l = Signal(name="in_h")
+        self.deadtime = Signal(resolution, name="deadtime", reset=default_deadtime)
+        self.out_h = Signal(name="out_h")
+        self.out_l = Signal(name="out_l")
+
+        self.submodules.wait = wait = WaitTimer(self.deadtime)
+        self.submodules.fsm = fsm = FSM("HIZ")
+        fsm.act("HIZ",
+            wait.wait.eq(1),
+            If(wait.done,
+                If(self.in_h & ~self.in_l,
+                    NextState("HI"),
+                    wait.wait.eq(0),
+                ).Elif(~self.in_h & self.in_l,
+                    NextState("LO"),
+                    wait.wait.eq(0),
+                ),
+            ),
+        )
+        fsm.act("HI",
+            If(~(self.in_h & ~self.in_l),
+                NextState("HIZ"),
+            ),
+        )
+        fsm.act("LO",
+            If(~(~self.in_h & self.in_l),
+                NextState("HIZ"),
+            ),
+        )
 
 
 class DeadTime(Module):
     """Dead-time insertion.
-
-    Switch mode power stage usually need to respect a proper switch-off / switch-on sequence for
-    each of the power switches to avoid damage to the hardware.
-    By inserting a "dead time" between a power switch turn-off and it's complementary switch
-    turn-on, cross-conduction can be avoided.
 
     This module takes a single input, and creates two outputs, `out_h` and `out_l`.
     `out_h` has the same sign as `input`, while `out_l` is inverted.
@@ -26,7 +95,7 @@ class DeadTime(Module):
         - **out_l** ( :class:`migen.fhdl.structure.Signal` ): is '1' when input == '0' and deadtime
           elapsed
     """
-    def __init__(self, resolution: int):
+    def __init__(self, resolution: int, default_deadtime=0):
         self.input = Signal(name="input")
         self.deadtime = Signal(resolution, name="deadtime")
         self.out_h = Signal(name="out_h")
@@ -134,6 +203,12 @@ class Pwm(Module):
 
     :param resolution: size of the counter in bits
     :type resolution: int
+    :param sync_update: update the duty cycles once per cycle. Avoid multiple transitions during a
+                        single period.
+    :type sync_update: bool
+    :param phase: the pwm output can be delayed by `phase` clk cycles. This is useful to stagger
+                  multiple Pwm outputs and reduce EMIs
+    :type phase: int
 
     :inputs:
         - **period** ( :class:`migen.fhdl.structure.Signal` (resolution))): length of the entire PWM
@@ -151,7 +226,7 @@ class Pwm(Module):
         - **cycle_update** ( :class:`migen.fhdl.structure.Signal` ): '1' for 1 clk tick, once per
           PWM period
     """
-    def __init__(self, resolution: int, sync_update=False):
+    def __init__(self, resolution: int, sync_update=False, phase=0):
         self.period = Signal(resolution)
         self.duty_cycle = Signal(resolution)
         self.center_mode = Signal()
@@ -162,7 +237,7 @@ class Pwm(Module):
 
         # # #
 
-        cnt = Signal(resolution)                 # internal counter
+        cnt = Signal(resolution, reset=phase)  # internal counter
 
         if sync_update:
             # update the duty cycle once per cycle
