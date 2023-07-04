@@ -1,4 +1,3 @@
-"""Push-Pull DC/DC driver"""
 from migen import Module, Signal, If
 from hmmc.output.pwm import Pwm
 
@@ -49,12 +48,12 @@ class SoftStart(Module):
 
     :param predivisor: change the duty cycle at the maximum every (1 + predivisor) PWM cycles
     :type predivisor: int
-    :param period: half period in clk count. Out frequency = Fclk / period / 2
+    :param max_duty_cycle: Maximum duty cycle the module can handle
     :type param: int
 
     :inputs:
         - **duty_cycle_setpoint** ( :class:`migen.fhdl.structure.Signal` (resolution)))
-        - **cycle_update** ( :class:`migen.fhdl.structure.Signal` ())) - set to 1 when a new PWM 
+        - **cycle_update** ( :class:`migen.fhdl.structure.Signal` ())) - set to 1 when a new PWM
           cycle starts. Generally connected to a Pwm's **duty_cycle**
 
     :outputs:
@@ -64,13 +63,13 @@ class SoftStart(Module):
           `duty_cycle_output == duty_cycle_setpoint`
     """
 
-    def __init__(self, predivisor, period):
+    def __init__(self, predivisor, max_duty_cycle):
         # inputs
-        self.duty_cycle_setpoint = Signal(max=period)
+        self.duty_cycle_setpoint = Signal(max=max_duty_cycle)
         self.cycle_update = Signal()
 
         # output
-        self.duty_cycle_output = Signal(max=period)
+        self.duty_cycle_output = Signal(max=max_duty_cycle)
         self.done = Signal()
 
         # # #

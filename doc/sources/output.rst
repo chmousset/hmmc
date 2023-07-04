@@ -147,30 +147,39 @@ Then, set duty_cycle > perdiod so that the output voltage is boosted. Ethernet t
 .. svgbob::
    :align: center
 
-              .------∿∿ -._    _.-->|---------.
-              |      *     )!!(     .--->|----+
-           ||-+            )!!(    |          |
-    ph_l --|+<-  V+ -∿∿ -._)!!(_.--+---+--||--+--Viso
-           ||-+      L     )!!(    |   |  C
-             _|_           )!!(    |  _|_
-             GND   .-∿∿ -._)!!(____| GNDi
-                   | *           
+         ╔═════════════════════════════════════╗
+         ║    Push Pull with external N MOS    ║
+         ╚═════════════════════════════════════╝
+
+              .------∿∿ -._    _.--->|--------.
+              |      *     )!!(     D         |
+           ||-+            )!!(               |
+           ||<-┐ V+ -∿∿ -._)!!(_.------o--||--o--Viso
+    ph_l __||-+┘     L     )!!(       _|_ C   |
+             _|_           )!!(      GNDi     |
+             GND   .-∿∿ -._)!!(_.--->|--------'
+                   | *      TR      D
                 ||-+
-         ph_h --|+<-
-                ||-+
+                |+<-┐
+         ph_h __||-+┘
                   _|_
                   GND
 
+         ╔═════════════════════════════════════╗
+         ║     Full bridge, using FPGA IOs     ║
+         ╚═════════════════════════════════════╝
               _____
                    |
-              F    +-∿∿ -._    _.-->|---------.
-              P    | *     )!!(     .--->|----+
-              G    |       )!!(    |          |
-              A    +-----._)!!(_.--+---+--||--+--Viso
-              _____|       )!!(    |   |  C
-                           )!!(    |  _|_
-                    -∿∿ -._)!!(____| GNDi
-                     *
+              F    +-∿∿ -._    _.--->|--------.
+              P    | *     )!!(     D         |
+              G    |       )!!(               |
+              A    +-----._)!!(_.------o--||--o--Viso
+              _____|       )!!(       _|_ C   |
+                           )!!(      GNDi     |
+                    -∿∿ -._)!!(_.--->|--------'
+                     *      TR      D
+
+The SoftStart core allows to increase the duty cycle progressively, reducing the current peak at converter startup. Typical usage looks like this:
 
 .. svgbob::
    :align: center
