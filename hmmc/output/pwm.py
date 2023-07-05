@@ -1,5 +1,4 @@
 from migen import Module, Signal, If, NextState, NextValue, FSM
-from migen.fhdl.bitcontainer import bits_for
 from migen.fhdl.structure import _Value
 
 
