@@ -156,7 +156,7 @@ class SigmaDelta(Module):
 
         for i in range(channels):
             filter = self.supported_filters[filter_type](resolution, **filter_parameters)
-            setattr(self.submodules, "{filter_type}_{i}", filter)
+            setattr(self.submodules, f"{filter_type}_{i}", filter)
             self.comb += [
                 filter.input.eq(self.input[i]),
                 filter.input_valid.eq(input_valid),
