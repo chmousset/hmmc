@@ -1,5 +1,9 @@
-from migen import Module, Signal, If, FSM, NextState
+from migen import Module, Signal, If, FSM, NextState, Cat
 from litex.soc.integration.doc import AutoDoc
+from hmmc.math.lut import LookupTableFixedPoint
+from hmmc.math.dsp import MulFixedPoint
+from hmmc.math.misc import Majority
+from hmmc.output.deltasigma import DeltaSigma
 
 
 class HystRegulatorBitSerial(Module, AutoDoc):
@@ -179,3 +183,44 @@ class TriHystRegulatorBitSerial(Module, AutoDoc):
                 hyst_cnt_rst.eq(1),
             ),
         )
+
+
+class LutRegulator(Module):
+    def __init__(self, n_phases, current_resolution, lut_init, hyst_resolution, hyst_default):
+        assert n_phases == len(lut_init)
+
+        # inputs
+        self.amplitude = Signal(current_resolution)
+        self.lut_sel = Signal(max=n_phases)
+        self.hyst_increase = Signal()
+        self.hyst_decrease = Signal()
+        self.feedbacks = Signal(n_phases)
+        # Outputs
+        self.outputs = [Signal() for _ in range(n_phases)]
+        self.complement_output = Signal()
+
+        # All phases that require a regulator
+        for i, init in enumerate(lut_init):
+            lut = LookupTableFixedPoint(init, current_resolution)
+            scaling = MulFixedPoint(self.amplitude, self.amplitude)
+            setpoint = DeltaSigma(current_resolution)
+            regulator = HystRegulatorBitSerial(hyst_resolution, hyst_default)
+            self.submodules += lut, scaling, setpoint, regulator
+            self.comb += [
+                lut.sel.eq(self.lut_sel),
+                scaling.A.eq(lut.output),
+                scaling.B.eq(self.amplitude),
+                setpoint.input.eq(scaling.C),
+                regulator.setpoint.eq(setpoint.output),
+                regulator.feedback.eq(self.feedbacks[i]),
+                regulator.hyst_decrease.eq(self.hyst_decrease),
+                regulator.hyst_increase.eq(self.hyst_increase),
+                self.outputs[i].eq(regulator.output),
+            ]
+
+        # Control the complement phase by inverse majority gate
+        self.submodules.majority_gate = majority_gate = Majority(n_phases)
+        self.comb += [
+            majority_gate.input.eq(~Cat(*self.outputs)),
+            self.complement_output.eq(majority_gate.output)
+        ]
