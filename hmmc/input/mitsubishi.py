@@ -3,6 +3,7 @@
 
 from migen import Module, Signal, FSM, NextState, NextValue, If
 from migen.genlib.misc import WaitTimer
+from hmmc.math.fixedpoint import FixedPointSignal
 
 
 class ECNMEncoder(Module):
@@ -56,8 +57,12 @@ class ECNMEncoder(Module):
         self.cs_error = Signal()
         self.error = Signal()
         self.critical_error = Signal()
+        self.shaft_position = FixedPointSignal(24)
+        self.shaft_position_valid = self.position_valid
 
         # # #
+
+        self.comb += self.shaft_position.eq(self.position)
 
         # we consider line silent if we waited 11 tbit without activity
         self.submodules.timeout = timeout = WaitTimer(1 + int(13 * fclk / self.baudrate))
