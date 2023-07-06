@@ -53,9 +53,9 @@ class MulFixedPoint(Module):
         mul = Signal((bits_a + bits_b, signed_a or signed_b))
         self.C = FixedPointSignal((bits_a + bits_b, signed_a or signed_b))
 
-        self.sync += [
+        self.comb += [
             mul.eq(self.A * self.B),
         ]
-        self.comb += [
+        self.sync += [
             self.C.eq(mul),
         ]

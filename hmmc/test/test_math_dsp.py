@@ -30,9 +30,9 @@ class TestMathDspAddSignedDetectOverflow(unittest.TestCase):
                 yield dut.B.eq(b)
                 yield
                 dut_c = (yield dut.C)
-                assert dut_c == overflown
-                assert (yield dut.overflow) == (1 if c > overflown else 0)
-                assert (yield dut.underflow) == (1 if c < overflown else 0)
+                self.assertEqual(dut_c, overflown)
+                self.assertEqual((yield dut.overflow), (1 if c > overflown else 0))
+                self.assertEqual((yield dut.underflow), (1 if c < overflown else 0))
         yield
 
     def test_math_dsp_add_signed_detect_overflow(self):
@@ -47,12 +47,12 @@ class TestMathDspMul(unittest.TestCase):
         yield dut.B.eq(b)
         yield
         yield
-        assert (yield dut.C) == a * b
+        self.assertEqual((yield dut.C), a * b)
 
     def test_math_dsp_mul_u_u(self):
         dut = MulFixedPoint(8, 8)
-        assert dut.C.nbits == 16
-        assert dut.C.signed == False
+        self.assertEqual(dut.C.nbits, 16)
+        self.assertEqual(dut.C.signed, False)
 
         def tb(dut):
             yield from self.mul_test(dut, 10, 20)
@@ -64,8 +64,8 @@ class TestMathDspMul(unittest.TestCase):
 
     def test_math_dsp_mul_s_u(self):
         dut = MulFixedPoint((8, True), 8)
-        assert dut.C.nbits == 16
-        assert dut.C.signed == True
+        self.assertEqual(dut.C.nbits, 16)
+        self.assertEqual(dut.C.signed, True)
 
         def tb(dut):
             yield from self.mul_test(dut, 10, 20)
@@ -79,8 +79,8 @@ class TestMathDspMul(unittest.TestCase):
 
     def test_math_dsp_mul_s_s(self):
         dut = MulFixedPoint((8, True), (8, True))
-        assert dut.C.nbits == 16
-        assert dut.C.signed == True
+        self.assertEqual(dut.C.nbits, 16)
+        self.assertEqual(dut.C.signed, True)
 
         def tb(dut):
             yield from self.mul_test(dut, 10, 20)
