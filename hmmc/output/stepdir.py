@@ -39,7 +39,7 @@ class Quadrature(Module):
         ]
         self.sync += Case(Cat(quad, self.down, self.up),
                     {
-                    # _   ↑_↓_quad
+                        # ↑_↓_quad
                         0b1_0_00: quad.eq(0b01),
                         0b1_0_01: quad.eq(0b11),
                         0b1_0_10: quad.eq(0b00),
@@ -138,7 +138,7 @@ class StepDir(Module):
         self.sync += [
             Case(Cat(step_done, self.dir, self.down, self.up),
                 {
-                # _   ↑_↓_dir_step_done
+                    # ↑_↓_dir_step_done
                     0b0_0_0_1: pulses.eq(pulses + 1),  # neg step done
                     0b0_0_1_1: pulses.eq(pulses - 1),  # pos step done
                     0b1_0_0_1: pulses.eq(pulses + 2),  # neg step done, up
@@ -149,8 +149,7 @@ class StepDir(Module):
                     0b0_1_0_0: pulses.eq(pulses - 1),  # down
                     0b1_0_1_0: pulses.eq(pulses + 1),  # up
                     0b0_1_1_0: pulses.eq(pulses - 1),  # down
-                }
-            ),
+            }),
         ]
 
         self.submodules.fsm = fsm = FSM("IDLE")

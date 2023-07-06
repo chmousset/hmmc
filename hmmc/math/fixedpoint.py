@@ -1,4 +1,4 @@
-from migen import Module, Signal
+from migen import Signal
 
 
 class FloatFixedConverter:
