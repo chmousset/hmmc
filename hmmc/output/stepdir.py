@@ -23,12 +23,12 @@ class Quadrature(Module):
     """
     def __init__(self):
         # inputs
-        self.up = Signal(name="up")
-        self.down = Signal(name="down")
+        self.up = Signal()
+        self.down = Signal()
 
         # outputs
-        self.a = Signal(name="a")
-        self.b = Signal(name="b")
+        self.a = Signal()
+        self.b = Signal()
 
         # # #
 
@@ -102,12 +102,12 @@ class StepDir(Module):
     """
     def __init__(self, pulse_duration, turnaround_duration):
         # inputs
-        self.up = Signal(name="up")
-        self.down = Signal(name="down")
+        self.up = Signal()
+        self.down = Signal()
 
         # outputs
-        self.step = Signal(name="step")
-        self.dir = Signal(name="dir")
+        self.step = Signal()
+        self.dir = Signal()
 
         # # #
 

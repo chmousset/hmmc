@@ -34,9 +34,9 @@ class LookupTableFixedPoint(Module):
 
         # Input/outputs
         self.sel = Signal(input_resolution)
-        self.sel_valid = Signal(name="sel_valid")
+        self.sel_valid = Signal()
         self.output = FixedPointSignal(resolution)
-        self.output_valid = Signal(name="output_valid")
+        self.output_valid = Signal()
 
         # # #
 

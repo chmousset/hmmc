@@ -133,9 +133,9 @@ class SigmaDelta(Module):
 
         # IOS
         self.clk_out = Signal(reset=0)
-        self.input = [Signal(name=f"input_{i}") for i in range(channels)]
-        self.output = [Signal(resolution, name=f"output_{i}") for i in range(channels)]
-        self.output_valid = [Signal(name=f"output_{i}_valid") for i in range(channels)]
+        self.input = [Signal() for i in range(channels)]
+        self.output = [Signal(resolution) for i in range(channels)]
+        self.output_valid = [Signal() for i in range(channels)]
         self.input_valid = Signal()
 
         # # #

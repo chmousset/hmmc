@@ -36,11 +36,11 @@ class MotionGeneratorAxis(Module):
         assert w_acceleration <= w_speed  # can't saturate speed in one cycle
 
         # inputs
-        self.cmd_valid = Signal(name="cmd_valid")
-        self.cmd_start_speed = Signal(w_speed, name="cmd_start_speed")
-        self.cmd_target_position = Signal(w_position, name="cmd_target_position")
-        self.cmd_acceleration = Signal(w_acceleration, name="cmd_acceleration")
-        self.flush = Signal(name="flush")
+        self.cmd_valid = Signal()
+        self.cmd_start_speed = Signal(w_speed)
+        self.cmd_target_position = Signal(w_position)
+        self.cmd_acceleration = Signal(w_acceleration)
+        self.flush = Signal()
 
         # input buffer
         self.acceleration = acceleration = Signal((w_acceleration, True))
@@ -54,13 +54,13 @@ class MotionGeneratorAxis(Module):
         self.submodules.addsat = add_signed_detect_overflow(cnt, speed)
 
         # outputs
-        self.cmd_ready = Signal(name="cmd_ready")
+        self.cmd_ready = Signal()
         self.position = position
         self.speed_raw = speed_raw
         self.speed = speed
-        self.down = Signal(name="down")
-        self.up = Signal(name="up")
-        self.done = Signal(name="done")
+        self.down = Signal()
+        self.up = Signal()
+        self.done = Signal()
 
         self.sync += [
             If(self.flush,

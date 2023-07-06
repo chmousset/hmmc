@@ -42,11 +42,11 @@ class DeadTimeComplementary(Module):
           elapsed
     """
     def __init__(self, resolution: int, default_deadtime=0):
-        self.in_h = Signal(name="in_l")
-        self.in_l = Signal(name="in_h")
-        self.deadtime = Signal(resolution, name="deadtime", reset=default_deadtime)
-        self.out_h = Signal(name="out_h")
-        self.out_l = Signal(name="out_l")
+        self.in_h = Signal()
+        self.in_l = Signal()
+        self.deadtime = Signal(resolution, reset=default_deadtime)
+        self.out_h = Signal()
+        self.out_l = Signal()
 
         self.submodules.wait = wait = WaitTimer(self.deadtime)
         self.submodules.fsm = fsm = FSM("HIZ")
@@ -95,10 +95,10 @@ class DeadTime(Module):
           elapsed
     """
     def __init__(self, resolution: int, default_deadtime=0):
-        self.input = Signal(name="input")
-        self.deadtime = Signal(resolution, name="deadtime")
-        self.out_h = Signal(name="out_h")
-        self.out_l = Signal(name="out_l")
+        self.input = Signal()
+        self.deadtime = Signal(resolution)
+        self.out_h = Signal()
+        self.out_l = Signal()
 
         # # #
 

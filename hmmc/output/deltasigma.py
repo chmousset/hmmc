@@ -15,8 +15,8 @@ class DeltaSigma(Module):
         - **output** ( :class:`migen.fhdl.structure.Signal` ) - pulse density modulated output
     """
     def __init__(self, resolution):
-        self.input = Signal(resolution, name="input")
-        self.output = Signal(name="output")
+        self.input = Signal(resolution)
+        self.output = Signal()
 
         # # #
         cnt = Signal(resolution)

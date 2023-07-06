@@ -100,14 +100,14 @@ class TriHystRegulatorBitSerial(Module, AutoDoc):
         assert hyst_default >= 1
 
         # inputs
-        self.setpoint = Signal(name="setpoint")
-        self.feedback = Signal(name="feedback")
-        self.hyst_increase = Signal(name="hyst_increase")
-        self.hyst_decrease = Signal(name="hyst_decrease")
+        self.setpoint = Signal()
+        self.feedback = Signal()
+        self.hyst_increase = Signal()
+        self.hyst_decrease = Signal()
         # Outputs
-        self.output = Signal(name="output")  # 1 if setpoint > feedback
-        self.output_neg = Signal(name="output_neg")
-        self.slow_decay = Signal(name="slow_decay")
+        self.output = Signal()  # 1 if setpoint > feedback
+        self.output_neg = Signal()
+        self.slow_decay = Signal()
 
         # # #
 
