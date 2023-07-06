@@ -1,4 +1,6 @@
 from migen import Module, Signal, Cat, C, value_bits_sign
+from migen.fhdl.structure import _Value
+from hmmc.math.fixedpoint import FixedPointSignal
 
 
 class add_signed_detect_overflow(Module):
@@ -24,4 +26,36 @@ class add_signed_detect_overflow(Module):
             self.overflow.eq(C_extended[-2:] == C(0b01, 2)),
             self.underflow.eq(C_extended[-2:] == C(0b10, 2)),
             self.C.eq(C_extended[0:-1]),
+        ]
+
+
+class MulFixedPoint(Module):
+    def __init__(self, bits_sign_a, bits_sign_b):
+        if isinstance(bits_sign_a, int):
+            bits_sign_a = (bits_sign_a, False)
+        if isinstance(bits_sign_b, int):
+            bits_sign_b = (bits_sign_b, False)
+
+        if isinstance(bits_sign_a, _Value):
+            bits_a, signed_a = bits_sign_a.nbits, bits_sign_a.signed
+        elif isinstance(bits_sign_a, tuple):
+            bits_a, signed_a = bits_sign_a
+        else:
+            bits_a, signed_a = bits_sign_a, False
+        if isinstance(bits_sign_b, _Value):
+            bits_b, signed_b = bits_sign_b.nbits, bits_sign_b.signed
+        elif isinstance(bits_sign_b, tuple):
+            bits_b, signed_b = bits_sign_b
+        else:
+            bits_b, signed_b = bits_sign_b, False
+        self.A = FixedPointSignal((bits_a, signed_a))
+        self.B = FixedPointSignal((bits_b, signed_b))
+        mul = Signal((bits_a + bits_b, signed_a or signed_b))
+        self.C = FixedPointSignal((bits_a + bits_b, signed_a or signed_b))
+
+        self.sync += [
+            mul.eq(self.A * self.B),
+        ]
+        self.comb += [
+            self.C.eq(mul),
         ]

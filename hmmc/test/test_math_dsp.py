@@ -1,7 +1,7 @@
 import unittest
 import inspect
 from migen import Module, Signal, run_simulation
-from hmmc.math.dsp import add_signed_detect_overflow
+from hmmc.math.dsp import add_signed_detect_overflow, MulFixedPoint
 
 
 class add_signed_detect_overflow_dut(Module):
@@ -38,4 +38,57 @@ class TestMathDspAddSignedDetectOverflow(unittest.TestCase):
     def test_math_dsp_add_signed_detect_overflow(self):
         dut = add_signed_detect_overflow_dut()
         run_simulation(dut, [self.add_signed_detect_overflow_test(dut)],
+            vcd_name=inspect.stack()[0][3] + ".vcd")
+
+
+class TestMathDspMul(unittest.TestCase):
+    def mul_test(self, dut, a, b):
+        yield dut.A.eq(a)
+        yield dut.B.eq(b)
+        yield
+        yield
+        assert (yield dut.C) == a * b
+
+    def test_math_dsp_mul_u_u(self):
+        dut = MulFixedPoint(8, 8)
+        assert dut.C.nbits == 16
+        assert dut.C.signed == False
+
+        def tb(dut):
+            yield from self.mul_test(dut, 10, 20)
+            yield from self.mul_test(dut, 0, 20)
+            yield from self.mul_test(dut, 5, 0)
+
+        run_simulation(dut, [tb(dut)],
+            vcd_name=inspect.stack()[0][3] + ".vcd")
+
+    def test_math_dsp_mul_s_u(self):
+        dut = MulFixedPoint((8, True), 8)
+        assert dut.C.nbits == 16
+        assert dut.C.signed == True
+
+        def tb(dut):
+            yield from self.mul_test(dut, 10, 20)
+            yield from self.mul_test(dut, 0, 20)
+            yield from self.mul_test(dut, 5, 0)
+            yield from self.mul_test(dut, -5, 0)
+            yield from self.mul_test(dut, -5, 5)
+
+        run_simulation(dut, [tb(dut)],
+            vcd_name=inspect.stack()[0][3] + ".vcd")
+
+    def test_math_dsp_mul_s_s(self):
+        dut = MulFixedPoint((8, True), (8, True))
+        assert dut.C.nbits == 16
+        assert dut.C.signed == True
+
+        def tb(dut):
+            yield from self.mul_test(dut, 10, 20)
+            yield from self.mul_test(dut, 0, 20)
+            yield from self.mul_test(dut, 5, 0)
+            yield from self.mul_test(dut, -5, 0)
+            yield from self.mul_test(dut, -5, -5)
+            yield from self.mul_test(dut, 5, -34)
+
+        run_simulation(dut, [tb(dut)],
             vcd_name=inspect.stack()[0][3] + ".vcd")

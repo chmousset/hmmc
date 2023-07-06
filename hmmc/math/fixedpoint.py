@@ -74,6 +74,8 @@ class FixedPointSignal(Signal):
     """Signal with 0.n Fixed Point support"""
     def eq(self, other):
         """Like :meth:`migen.fhdl.structure.Signal.eq`, assign a :class:`_Value` to this signal"""
+        if isinstance(other, int):
+            return super().eq(other)
         if self.nbits == other.nbits:
             return super().eq(other)
         if self.nbits >= other.nbits:
