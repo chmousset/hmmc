@@ -1,4 +1,5 @@
 from migen import Module, Signal, Cat
+from hmmc.math.fixedpoint import FixedPointSignal
 
 
 class DeltaSigma(Module):
@@ -23,3 +24,21 @@ class DeltaSigma(Module):
         self.sync += [
             Cat(cnt, self.output).eq(cnt + self.input),
         ]
+
+
+class DeltaSigmaFixedPoint(Module):
+    def __init__(self, resolution, signed=False):
+        self.input = FixedPointSignal((resolution, signed))
+        self.output = Signal()
+
+        # # #
+
+        cnt = Signal(resolution)
+
+        if signed:
+            in_unsigned = Signal(resolution)
+
+            self.sync += Cat(cnt, self.output).eq(cnt + in_unsigned)
+            self.comb += in_unsigned.eq(self.input + 2**(resolution - 1))
+        else:
+            self.sync += Cat(cnt, self.output).eq(cnt + self.input)
