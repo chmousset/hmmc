@@ -1,12 +1,18 @@
-*.vcd
+# test outputs
+/*.vcd
+/*.v
+/*.png
+.pytest_cache/
+
+# Python environment
 /env/
 __pycache__/
-build/
 *.egg-info/
+
+# Build artefacts (including docs)
 _autosummary/
 _build/
-.pytest_cache/
-/*.png
+build/
 vivado*
 *.log
 *.jou

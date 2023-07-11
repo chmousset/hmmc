@@ -1,5 +1,4 @@
 from migen import Module, Signal, Cat, C, value_bits_sign
-from migen.fhdl.structure import _Value
 from hmmc.math.fixedpoint import FixedPointSignal
 
 
@@ -30,32 +29,43 @@ class add_signed_detect_overflow(Module):
 
 
 class MulFixedPoint(Module):
-    def __init__(self, bits_sign_a, bits_sign_b):
-        if isinstance(bits_sign_a, int):
-            bits_sign_a = (bits_sign_a, False)
-        if isinstance(bits_sign_b, int):
-            bits_sign_b = (bits_sign_b, False)
+    """Multiply to Fractional, Fixed Point Signals
 
-        if isinstance(bits_sign_a, _Value):
-            bits_a, signed_a = bits_sign_a.nbits, bits_sign_a.signed
-        elif isinstance(bits_sign_a, tuple):
-            bits_a, signed_a = bits_sign_a
-        else:
-            bits_a, signed_a = bits_sign_a, False
-        if isinstance(bits_sign_b, _Value):
-            bits_b, signed_b = bits_sign_b.nbits, bits_sign_b.signed
-        elif isinstance(bits_sign_b, tuple):
-            bits_b, signed_b = bits_sign_b
-        else:
-            bits_b, signed_b = bits_sign_b, False
-        self.A = FixedPointSignal((bits_a, signed_a))
-        self.B = FixedPointSignal((bits_b, signed_b))
-        mul = Signal((bits_a + bits_b, signed_a or signed_b))
-        self.C = FixedPointSignal((bits_a + bits_b, signed_a or signed_b))
+    .. note::
 
+        The sign of the operands must be identical
+    """
+    def __init__(self, bits_sign_a, bits_sign_b, radix_nbits_a=None, radix_nbits_b=None):
+        def bits_sign(a):
+            if isinstance(a, tuple):
+                return a
+            elif isinstance(a, Signal):
+                return a.nbits, a.signed
+            elif isinstance(a, FixedPointSignal):
+                return a.nbits, a.signed
+            else:
+                return a, False
+
+        bits_a, signed_a = bits_sign(bits_sign_a)
+        bits_b, signed_b = bits_sign(bits_sign_b)
+        assert signed_a == signed_b
+        signed = signed_a or signed_b
+        self.A = FixedPointSignal((bits_a, signed_a), radix_nbits_a)
+        self.B = FixedPointSignal((bits_b, signed_b), radix_nbits_b)
+        radix_nbits = self.A.radix_nbits + self.B.radix_nbits
+        A = Signal((bits_a, signed_a))
+        B = Signal((bits_b, signed_b))
+        mul = Signal((bits_a + bits_b, signed))
         self.comb += [
-            mul.eq(self.A * self.B),
+            A.eq(self.A),
+            B.eq(self.B),
         ]
-        self.sync += [
-            self.C.eq(mul),
-        ]
+        self.comb += mul.eq(self.A * self.B)
+        if signed:
+            self.C = FixedPointSignal((bits_a + bits_b - 1, signed), radix_nbits=radix_nbits,
+                reset_less=True)  # remove duplicate sign bit
+            self.sync += Signal.eq(self.C, mul[0:-1])
+        else:
+            self.C = FixedPointSignal((bits_a + bits_b, signed), radix_nbits=radix_nbits,
+                reset_less=True)
+            self.sync += Signal.eq(self.C, mul)

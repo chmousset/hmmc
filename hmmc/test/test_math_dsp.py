@@ -1,7 +1,9 @@
 import unittest
 import inspect
+from migen.fhdl.verilog import convert
 from migen import Module, Signal, run_simulation
 from hmmc.math.dsp import add_signed_detect_overflow, MulFixedPoint
+from hmmc.math.fixedpoint import FloatFixedConverter
 
 
 class add_signed_detect_overflow_dut(Module):
@@ -49,9 +51,22 @@ class TestMathDspMul(unittest.TestCase):
         yield
         self.assertEqual((yield dut.C), a * b)
 
-    def test_math_dsp_mul_u_u(self):
+    def fp_mul_test(self, dut, a, b, c_min, c_max):
+        yield dut.A.eq(a)
+        yield dut.B.eq(b)
+        yield
+        yield
+        c = (yield dut.C)
+        if c < 0:
+            c = (c + (1 << dut.C.nbits)) % (1 << dut.C.nbits)
+        print(f"{a}, {b}, {c_min}, {c_max}, {c}")
+        self.assertGreaterEqual(c, c_min)
+        self.assertGreaterEqual(c_max, c)
+
+    def test_math_dsp_mul_u(self):
         dut = MulFixedPoint(8, 8)
         self.assertEqual(dut.C.nbits, 16)
+        self.assertEqual(dut.C.radix_nbits, 16)
         self.assertEqual(dut.C.signed, False)
 
         def tb(dut):
@@ -62,33 +77,40 @@ class TestMathDspMul(unittest.TestCase):
         run_simulation(dut, [tb(dut)],
             vcd_name=inspect.stack()[0][3] + ".vcd")
 
-    def test_math_dsp_mul_s_u(self):
-        dut = MulFixedPoint((8, True), 8)
-        self.assertEqual(dut.C.nbits, 16)
-        self.assertEqual(dut.C.signed, True)
-
-        def tb(dut):
-            yield from self.mul_test(dut, 10, 20)
-            yield from self.mul_test(dut, 0, 20)
-            yield from self.mul_test(dut, 5, 0)
-            yield from self.mul_test(dut, -5, 0)
-            yield from self.mul_test(dut, -5, 5)
-
-        run_simulation(dut, [tb(dut)],
-            vcd_name=inspect.stack()[0][3] + ".vcd")
-
-    def test_math_dsp_mul_s_s(self):
+    def test_math_dsp_mul_s(self):
+        fpc_in = FloatFixedConverter(8, 7, True, saturate=True)
+        fpc_out = FloatFixedConverter(15, 14, True, saturate=True)
         dut = MulFixedPoint((8, True), (8, True))
-        self.assertEqual(dut.C.nbits, 16)
+        self.assertEqual(dut.C.nbits, 15)
+        self.assertEqual(dut.C.radix_nbits, 14)
         self.assertEqual(dut.C.signed, True)
 
+        values = [0.0, 0.9, 0.5]
+        t_min = 0.99
+        t_max = 1.01
+
+        for v in values.copy():
+            if v != 0.0:
+                values += [-1 * v]
+
         def tb(dut):
-            yield from self.mul_test(dut, 10, 20)
-            yield from self.mul_test(dut, 0, 20)
-            yield from self.mul_test(dut, 5, 0)
-            yield from self.mul_test(dut, -5, 0)
-            yield from self.mul_test(dut, -5, -5)
-            yield from self.mul_test(dut, 5, -34)
+            for a in values:
+                for b in values:
+                    _c_min = t_min * a * b
+                    _c_max = t_max * a * b
+                    c_min = min(_c_max, _c_min)
+                    c_max = max(_c_max, _c_min)
+                    yield from self.fp_mul_test(dut,
+                        fpc_in.convert_float(a),
+                        fpc_in.convert_float(b),
+                        fpc_out.convert_float(c_min),
+                        fpc_out.convert_float(c_max))
 
         run_simulation(dut, [tb(dut)],
             vcd_name=inspect.stack()[0][3] + ".vcd")
+
+    def test_math_dsp_mul_v(self):
+        dut = MulFixedPoint((8, True), (8, True))
+        v = convert(dut, ios={dut.A, dut.B, dut.C})
+        with open(inspect.stack()[0][3] + ".v", 'w') as f:
+            f.write(str(v))
