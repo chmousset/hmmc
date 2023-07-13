@@ -22,4 +22,4 @@ class TestUtilsVerilator(unittest.TestCase):
         copy_package_file("hmmc.data.cpp", "adder.cpp", buildpath + "tb.cpp")
         builder.add_source("tb.cpp")
         builder.add_source("top.v")
-        builder.cmake("test_regulator_hyst_threep", True)
+        builder.cmake("test_utils_verilator", True)

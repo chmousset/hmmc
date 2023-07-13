@@ -3,7 +3,8 @@ import inspect
 from migen.fhdl.verilog import convert
 from migen import Module, Signal, run_simulation
 from hmmc.math.dsp import add_signed_detect_overflow, MulFixedPoint
-from hmmc.math.fixedpoint import FloatFixedConverter
+from hmmc.math.fixedpoint import FloatFixedConverter, FixedPointSignal
+from hmmc.utils.verilator import ModuleVerilog, VerilatorBuilder
 
 
 class add_signed_detect_overflow_dut(Module):
@@ -114,3 +115,36 @@ class TestMathDspMul(unittest.TestCase):
         v = convert(dut, ios={dut.A, dut.B, dut.C})
         with open(inspect.stack()[0][3] + ".v", 'w') as f:
             f.write(str(v))
+
+    def test_math_dsp_mul_verilator(self):
+        buildpath = f"build/{inspect.stack()[0][3]}/"
+        dut = MulFixedPoint((8, True), (8, True))
+        dut.C_scaled = FixedPointSignal((10, True), 9)
+        dut.comb += dut.C_scaled.eq(dut.C)
+        dut.A.name_override = 'A'
+        dut.B.name_override = 'B'
+        dut.C.name_override = 'C'
+        dut.C_scaled.name_override = 'C_scaled'
+        dut._ios = {dut.A, dut.B, dut.C, dut.C_scaled}
+        ModuleVerilog.verilog(dut, f"{buildpath}top.v")
+
+        A_value = -40
+        B_value = 123
+        C_value = A_value * B_value
+        C_scaled_value = C_value // 32
+
+        builder = VerilatorBuilder(buildpath)
+        builder.add_source("tb.cpp", builder.format_builtin_template(
+            includes="#include <cassert>",
+            defines=f"#define VM_TRACE_FILE \"build/{inspect.stack()[0][3]}/trace.vcd\"",
+            main_code="\n    ".join(["    // main testbench",
+                        "clock_tick(contextp, top);",
+                        f"top->A = {A_value};",
+                        f"top->B = {B_value};",
+                        "clock_tick(contextp, top);",
+                        f'assert(top->C == ((unsigned int){C_value} & 0x7FFF));'
+                        f'assert(top->C_scaled == ((unsigned int){C_scaled_value} & 0x3FF));'
+                        ]),
+            return_code="    return 0;"))
+        builder.add_source("top.v")
+        builder.cmake("test_utils_verilator", True)

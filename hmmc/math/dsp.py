@@ -53,19 +53,13 @@ class MulFixedPoint(Module):
         self.A = FixedPointSignal((bits_a, signed_a), radix_nbits_a)
         self.B = FixedPointSignal((bits_b, signed_b), radix_nbits_b)
         radix_nbits = self.A.radix_nbits + self.B.radix_nbits
-        A = Signal((bits_a, signed_a))
-        B = Signal((bits_b, signed_b))
         mul = Signal((bits_a + bits_b, signed))
-        self.comb += [
-            A.eq(self.A),
-            B.eq(self.B),
-        ]
-        self.comb += mul.eq(self.A * self.B)
+        self.sync += mul.eq(self.A * self.B)
         if signed:
             self.C = FixedPointSignal((bits_a + bits_b - 1, signed), radix_nbits=radix_nbits,
                 reset_less=True)  # remove duplicate sign bit
-            self.sync += Signal.eq(self.C, mul[0:-1])
+            self.comb += Signal.eq(self.C, mul[0:-1])
         else:
             self.C = FixedPointSignal((bits_a + bits_b, signed), radix_nbits=radix_nbits,
                 reset_less=True)
-            self.sync += Signal.eq(self.C, mul)
+            self.comb += Signal.eq(self.C, mul)

@@ -1,12 +1,11 @@
 import os
+from pkg_resources import resource_string as resource_bytes
 from datetime import datetime
 from pathlib import Path
 import subprocess
-
 from migen import Module, Record
 from migen.fhdl.verilog import convert
 from migen.fhdl.specials import Special
-from os import makedirs
 
 
 class ModuleVerilog(Module):
@@ -29,15 +28,17 @@ class ModuleVerilog(Module):
         # flatten records to be usable as ios
         ios = {io.iter_flat() if isinstance(io, Record) else io for io in ios}
         # Make subdirs
-        filepath = Path(filename)
+        filepath = Path(filename).absolute()
         dirpath = filepath.parent.absolute()
         if not dirpath.exists():
-            makedirs(dirpath)
+            os.makedirs(dirpath)
         # assert filepath.is_file()
         # convert
         v = convert(self, ios=ios)
-        with open(filename, 'w') as f:
-            f.write(str(v))
+        current_path = os.getcwd()
+        os.chdir(dirpath)
+        v.write(os.path.basename(filepath))
+        os.chdir(current_path)
 
 
 class RawVerilog(Special):
@@ -89,15 +90,23 @@ class VerilatorBuilder:
         self.sources = {
             ".v": [],
             ".cpp": [],
+            ".hpp": [],
         }
         self.build_path = Path(build_path)
+        # Make sure the build path exists
+        buildpath = self.build_path.joinpath('build')
+        if not os.path.isdir(buildpath):
+            os.makedirs(buildpath)
+        self.buildpath = buildpath
 
-    def add_source(self, path):
+    def add_source(self, path, content=None):
         """Add source file to be built.
         Currently .cpp and .v files are recognized.
 
         :param path: either a path to a source file or a list of files
         :type path: str, Path, list(str) or list(Path)
+        :param content: if not None, `content` will be written to the file
+        :type content: str
         """
         if isinstance(path, list):
             for p in path:
@@ -107,6 +116,10 @@ class VerilatorBuilder:
             if extension not in self.sources:
                 raise ValueError(f"file {path} not of supported type {self.sources.keys()}")
             self.sources[extension] += [str(path)]
+
+        if content is not None:
+            with open(os.path.join(self.buildpath, path), "w") as f:
+                f.write(content)
 
     def cmake(self, exec_name, call=False):
         """Generate CMakeLists.txt and call CMake
@@ -120,10 +133,6 @@ class VerilatorBuilder:
         :param call: if True, call CMake
         :type call: bool
         """
-        # Make sure the build path exists
-        buildpath = self.build_path.joinpath('build')
-        if not os.path.isdir(buildpath):
-            os.makedirs(buildpath)
 
         # generate CMakeLists.txt
         v_sources = " ".join(self.sources[".v"])
@@ -153,12 +162,27 @@ class VerilatorBuilder:
 
         if call:
             current_path = os.getcwd()
-            os.chdir(buildpath)
+            os.chdir(self.buildpath)
             if subprocess.Popen(["cmake", ".."]).wait() != 0:
                 raise Exception("cmake failed")
             if subprocess.Popen(["make", "-j"]).wait() != 0:
                 raise Exception("make failed")
             os.chdir(current_path)
+
+    def format_builtin_template(self, template_file="template_simple.cpp", **kwargs):
+        """Use one of the built-in templates
+
+        :return: str
+
+        :param template_file: the filename of one of `hmmc.data.cpp` files. Defaults to
+          "template_simple.cpp"
+        :type template_file: str
+        :param **kwargs: other parameters will be passed to the .format() function on the template
+          string.
+        :type **kwargs: str
+        """
+        template = resource_bytes("hmmc.data.cpp", template_file).decode('utf-8')
+        return template.format(**kwargs)
 
 
 def copy_package_file(package, resource_name, target):
@@ -174,6 +198,5 @@ def copy_package_file(package, resource_name, target):
     :param target: path to copy the content to
     :type target: str or Path
     """ 
-    from pkg_resources import resource_string as resource_bytes
     with open(target, 'w') as f:
         f.write(resource_bytes(package, resource_name).decode('utf-8'))
