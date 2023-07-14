@@ -13,6 +13,8 @@ class LookupTableFixedPoint(Module):
     :param async_read: output of the LUT is immedately available. **Please be aware that this will
                        prevent the LUT to use block RAM in many FPGA architecture**
     :type async_read: bool
+    :param signed: is the output signed. Impacts the type of `.output`
+    :type signed: bool
 
     :inputs:
         - **sel** ( :class:`migen.fhdl.structure.Signal` (input_resolution))
@@ -24,7 +26,7 @@ class LookupTableFixedPoint(Module):
           will be valid one clock cycle after sel has been changed.
         - **output_valid** ( :class:`migen.fhdl.structure.Signal` ): is '1' when the output is valid
     """
-    def __init__(self, init, resolution, async_read=False):
+    def __init__(self, init, resolution, signed, async_read=False):
         # sanity checks
         sample_cnt = len(init)
         input_resolution = ceil(log2(sample_cnt))
@@ -35,7 +37,7 @@ class LookupTableFixedPoint(Module):
         # Input/outputs
         self.sel = Signal(input_resolution)
         self.sel_valid = Signal()
-        self.output = FixedPointSignal(resolution)
+        self.output = FixedPointSignal((resolution, signed))
         self.output_valid = Signal()
 
         # # #
@@ -48,7 +50,7 @@ class LookupTableFixedPoint(Module):
 
         self.comb += [
             rp.adr.eq(self.sel),
-            self.output.eq(rp.dat_r),
+            Signal.eq(self.output, rp.dat_r),
         ]
 
         if async_read:

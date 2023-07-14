@@ -3,7 +3,8 @@ from litex.soc.integration.doc import AutoDoc
 from hmmc.math.lut import LookupTableFixedPoint
 from hmmc.math.dsp import MulFixedPoint
 from hmmc.math.misc import Majority
-from hmmc.output.deltasigma import DeltaSigma
+from hmmc.math.fixedpoint import FixedPointSignal
+from hmmc.output.deltasigma import DeltaSigmaFixedPoint
 
 
 class HystRegulatorBitSerial(Module, AutoDoc):
@@ -190,8 +191,9 @@ class LutRegulator(Module):
         assert n_phases == len(lut_init)
 
         # inputs
-        self.amplitude = Signal(current_resolution)
-        self.lut_sel = Signal(max=n_phases)
+        self.amplitude = FixedPointSignal((current_resolution, True))
+        self.lut_sel = Signal(max=len(lut_init[0]))
+        self.lut_sel_valid = Signal()
         self.hyst_increase = Signal()
         self.hyst_decrease = Signal()
         self.feedbacks = Signal(n_phases)
@@ -201,13 +203,17 @@ class LutRegulator(Module):
 
         # All phases that require a regulator
         for i, init in enumerate(lut_init):
-            lut = LookupTableFixedPoint(init, current_resolution)
-            scaling = MulFixedPoint(self.amplitude, self.amplitude)
-            setpoint = DeltaSigma(current_resolution)
+            lut = LookupTableFixedPoint(init, current_resolution, True)
+            scaling = MulFixedPoint(lut.output, self.amplitude)
+            setpoint = DeltaSigmaFixedPoint(current_resolution, True)
             regulator = HystRegulatorBitSerial(hyst_resolution, hyst_default)
-            self.submodules += lut, scaling, setpoint, regulator
+            setattr(self.submodules, f"lut_{i}", lut)
+            setattr(self.submodules, f"scaling_{i}", scaling)
+            setattr(self.submodules, f"setpoint_{i}", setpoint)
+            setattr(self.submodules, f"regulator_{i}", regulator)
             self.comb += [
                 lut.sel.eq(self.lut_sel),
+                lut.sel_valid.eq(self.lut_sel_valid),
                 scaling.A.eq(lut.output),
                 scaling.B.eq(self.amplitude),
                 setpoint.input.eq(scaling.C),
@@ -221,6 +227,6 @@ class LutRegulator(Module):
         # Control the complement phase by inverse majority gate
         self.submodules.majority_gate = majority_gate = Majority(n_phases)
         self.comb += [
-            majority_gate.input.eq(~Cat(*self.outputs)),
-            self.complement_output.eq(majority_gate.output)
+            majority_gate.input.eq(Cat(*self.outputs)),
+            self.complement_output.eq(~majority_gate.output)
         ]

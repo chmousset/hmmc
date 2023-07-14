@@ -23,13 +23,13 @@ class TestMathLUT(unittest.TestCase):
             yield
 
     def test_math_lut_sync(self):
-        dut = LookupTableFixedPoint(self.test_vector, self.res, async_read=False)
+        dut = LookupTableFixedPoint(self.test_vector, self.res, False, async_read=False)
         run_simulation(dut,
             [self.set_sel(dut), self.check_values(dut)],
             vcd_name=inspect.stack()[0][3] + ".vcd")
 
     def test_math_lut_async(self):
-        dut = LookupTableFixedPoint(self.test_vector, self.res, async_read=True)
+        dut = LookupTableFixedPoint(self.test_vector, self.res, False, async_read=True)
         run_simulation(dut,
             [self.set_sel(dut), self.check_values(dut)],
             vcd_name=inspect.stack()[0][3] + ".vcd")
