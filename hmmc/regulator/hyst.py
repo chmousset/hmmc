@@ -202,15 +202,16 @@ class LutRegulator(Module):
         self.complement_output = Signal()
 
         # All phases that require a regulator
+        named_submodules = dict()
         for i, init in enumerate(lut_init):
-            lut = LookupTableFixedPoint(init, current_resolution, True)
-            scaling = MulFixedPoint(lut.output, self.amplitude)
-            setpoint = DeltaSigmaFixedPoint(current_resolution, True)
-            regulator = HystRegulatorBitSerial(hyst_resolution, hyst_default)
-            setattr(self.submodules, f"lut_{i}", lut)
-            setattr(self.submodules, f"scaling_{i}", scaling)
-            setattr(self.submodules, f"setpoint_{i}", setpoint)
-            setattr(self.submodules, f"regulator_{i}", regulator)
+            named_submodules[f"lut_{i}"] = LookupTableFixedPoint(init, current_resolution, True)
+            lut = named_submodules[f"lut_{i}"]
+            named_submodules[f"scaling_{i}"] = MulFixedPoint(lut.output, self.amplitude)
+            named_submodules[f"setpoint_{i}"] = DeltaSigmaFixedPoint(current_resolution, True)
+            named_submodules[f"regulator_{i}"] = HystRegulatorBitSerial(hyst_resolution, hyst_default)
+            scaling = named_submodules[f"scaling_{i}"]
+            setpoint = named_submodules[f"setpoint_{i}"]
+            regulator = named_submodules[f"regulator_{i}"]
             self.comb += [
                 lut.sel.eq(self.lut_sel),
                 lut.sel_valid.eq(self.lut_sel_valid),
@@ -223,6 +224,8 @@ class LutRegulator(Module):
                 regulator.hyst_increase.eq(self.hyst_increase),
                 self.outputs[i].eq(regulator.output),
             ]
+        for name, sub in named_submodules.items():
+            setattr(self.submodules, name, sub)
 
         # Control the complement phase by inverse majority gate
         self.submodules.majority_gate = majority_gate = Majority(n_phases)

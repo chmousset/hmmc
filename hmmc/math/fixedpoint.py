@@ -86,18 +86,67 @@ class FloatFixedConverter:
 
 
 class FixedPointSignal(Signal):
-    def __init__(self, bits_sign=None, radix_nbits=None, **kwargs):
-        """m.n Fractional, Fixed point Signal
+    """m.n Fractional, Fixed point Signal
 
-        :param bits_sign: see ( :class:`migen.fhdl.structure.Signal` )
-        :param radix_nbits: how many bits are in the radix portion. Must be positive, and inferior
-          than (nbits + 1) if unsigned, or nbits if signed. By default, radix_nbits=nbits which will
-          suit a 0.n fractional number
-        :type radix_nbits: int
+    :param bits_sign: see ( :class:`migen.fhdl.structure.Signal` )
+    :param radix_nbits: how many bits are in the radix portion. Must be positive, and inferior
+      than (nbits + 1) if unsigned, or nbits if signed. By default, radix_nbits=nbits which will
+      suit a 0.n fractional number
+    :type radix_nbits: int
 
-        Other parameters are passed to Signal()
-        """
-        super().__init__(bits_sign, **kwargs)
+    Other parameters are identical as for Signal()
+    """
+    def __init__(self, bits_sign=None, radix_nbits=None, name=None, variable=False, reset=0,
+                 reset_less=False, name_override=None, min=None, max=None,
+                 related=None, attr=None):
+
+        # because of the way migen's tracer work, Signal.__init__() code has to be duplicated to
+        # avoid FixedPointSignal to be treated as if they were Modules owning a Signal, which can
+        # cause signal name conflicts
+        from migen.fhdl.bitcontainer import bits_for
+        from migen import Constant
+        from migen.fhdl import tracer as _tracer
+        import builtins as _builtins
+
+        _Value.__init__(self)
+
+        for n in [name, name_override]:
+            if n is not None and not self._name_re.match(n):
+                raise ValueError("Signal name {} is not a valid Python identifier"
+                                 .format(repr(n)))
+
+        # determine number of bits and signedness
+        if bits_sign is None:
+            if min is None:
+                min = 0
+            if max is None:
+                max = 2
+            max -= 1  # make both bounds inclusive
+            assert(min < max)
+            self.signed = min < 0 or max < 0
+            self.nbits = _builtins.max(bits_for(min, self.signed), bits_for(max, self.signed))
+        else:
+            assert(min is None and max is None)
+            if isinstance(bits_sign, tuple):
+                self.nbits, self.signed = bits_sign
+            else:
+                self.nbits, self.signed = bits_sign, False
+        if isinstance(reset, (bool, int)):
+            reset = Constant(reset, (self.nbits, self.signed))
+        if not isinstance(self.nbits, int) or self.nbits <= 0:
+            raise ValueError("Signal width must be a strictly positive integer")
+        if attr is None:
+            attr = set()
+
+        self.variable = variable  # deprecated
+        self.reset = reset
+        self.reset_less = reset_less
+        self.name_override = name_override
+        self.backtrace = _tracer.trace_back(name)
+        self.related = related
+        self.attr = attr
+
+        # FixedPoint part
         if radix_nbits is None:
             self.radix_nbits = self.nbits - 1 if self.signed else self.nbits
         else:
