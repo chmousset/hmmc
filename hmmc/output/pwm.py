@@ -1,10 +1,11 @@
 from migen import Module, Signal, If, NextState, NextValue, FSM
+from migen.genlib.misc import WaitTimer as MigenWaitTimer
 from migen.fhdl.structure import _Value
 
 
 class WaitTimer(Module):
     def __init__(self, time: _Value, resolution=None):
-        resolution if resolution is not None else time.nbits
+        resolution = resolution if resolution is not None else time.nbits
         self.done = Signal()
         self.wait = Signal()
 
@@ -63,11 +64,13 @@ class DeadTimeComplementary(Module):
             ),
         )
         fsm.act("HI",
+            self.out_h.eq(1),
             If(~(self.in_h & ~self.in_l),
                 NextState("HIZ"),
             ),
         )
         fsm.act("LO",
+            self.out_l.eq(1),
             If(~(~self.in_h & self.in_l),
                 NextState("HIZ"),
             ),
@@ -193,6 +196,76 @@ class PulseGuard(Module):
         )
 
         self.sync += prev_out.eq(self.output)
+
+
+class BootstrapRefresh(Module):
+    """Ensure low-side of half bridge gets activated often enough
+
+    High-voltage FET drivers often have their high-side driver powered through a bootstrap circuit.
+    A capacitor powers the high-side driver when the output is floating or high.
+    When the output is low, the high-side driver is powered through a diode which also recharges the
+    bootstrap capacitor.
+    If this capacitor voltage drops under the UVLO threshold, the high-side FET will turn off.
+    Recharging the bootstrap capacitor regularly is necessary to avoid this.
+    This module ensures that the bottom FET is driven ON regularly, regardless of the complementary
+    inputs.
+    """
+    def __init__(self, min_pulse: int, refresh_period: int):
+        assert refresh_period > min_pulse
+        self.in_l = Signal()
+        self.in_h = Signal()
+        self.out_l = Signal()
+        self.out_h = Signal()
+
+        # # #
+
+        cnt_l = Signal(max=refresh_period, reset=refresh_period - 1)
+        cnt_min = Signal(max=min_pulse, reset=min_pulse - 1)
+
+        wait_refresh = MigenWaitTimer(refresh_period - 1)
+        wait_min = MigenWaitTimer(min_pulse - 1)
+        self.submodules += wait_refresh, wait_min
+        self.comb += [
+            wait_refresh.wait.eq(~self.out_l),
+            wait_min.wait.eq(1),
+        ]
+        self.submodules.fsm = fsm = FSM(reset_state="Z")
+        fsm.act("Z",
+            If(wait_refresh.done,
+                NextState("L"),
+                wait_min.wait.eq(0),  # refresh min wait timer
+            ).Else(
+                If(self.in_l & ~self.in_h,
+                    NextState("L"),
+                    wait_min.wait.eq(0),  # refresh min wait timer
+                ).Elif(~self.in_l & self.in_h,
+                    NextState("H"),
+                    wait_min.wait.eq(0),  # refresh min wait timer
+                ),
+            ),
+        )
+        fsm.act("L",
+            self.out_l.eq(1),
+            If(wait_min.done,
+                If(~self.in_l & self.in_h,
+                    NextState("H"),
+                    wait_min.wait.eq(0),  # refresh min wait timer
+                ).Elif(~self.in_l,
+                    NextState("Z"),
+                ),
+            ),
+        )
+        fsm.act("H",
+            self.out_h.eq(1),
+            If(wait_min.done,
+                If(wait_refresh.done | (self.in_l & ~self.in_h),
+                    NextState("L"),
+                    wait_min.wait.eq(0),  # refresh min wait timer
+                ).Elif(~self.in_h,
+                    NextState("Z"),
+                ),
+            ),
+        )
 
 
 class Pwm(Module):
