@@ -233,3 +233,74 @@ class LutRegulator(Module):
             majority_gate.input.eq(Cat(*self.outputs)),
             self.complement_output.eq(~majority_gate.output)
         ]
+
+
+class HysteresisController(Module):
+    """Control hysteresis value based on regulator output.
+
+    This module dynamically controls the hysteresis parameter to respect minimum and maximum
+    switching frequency criteria.
+    When switching frequency is too high, the hysteresis is increased, and when the frequency is too
+    low it's decreased.
+
+    :param resolution: Resolution of the hysteresis parameter.
+    :type resolution: int
+    :param n_phases: how many phases to monitor. Typically 2 for a 3 phases motor
+    :type n_phases: int
+    :param fclk: system clock frequency
+    :type fclk: int
+    :param min_frequency: minimal switching frequency
+    :type min_frequency: int
+    :param max_frequency: maximal switching frequency
+    :type max_frequency: int
+
+    :inputs:
+      - **phases** ( :class:`migen.fhdl.structure.Signal`(n_phases) ) - output of the hysteretic
+        regulator
+
+    :outputs:
+      - **hyst_decrease** ( :class:`migen.fhdl.structure.Signal` ) - signal to decrease the
+        hysteresis
+      - **hyst_increase** ( :class:`migen.fhdl.structure.Signal` ) - signal to increase the
+        hysteresis
+    """
+    def __init__(self, resolution, n_phases, fclk, min_frequency, max_frequency):
+        self.hyst_decrease = Signal()
+        self.hyst_increase = Signal()
+
+        # Inputs
+        self.phases = phases = Signal(n_phases)
+
+        # outputs
+        self.hyst_increase = Signal()
+        self.hyst_decrease = Signal()
+
+        # # #
+
+        # Compute the minimum and maximum switching period
+        min_period = fclk // max_frequency // n_phases
+        max_period = fclk // min_frequency // n_phases
+
+        # switching detection
+        switching = Signal()
+        prev_phases_states = Signal(n_phases)
+
+        self.comb += If(prev_phases_states != self.phases, switching.eq(1))
+        self.sync += prev_phases_states.eq(self.phases)
+
+        # min/max period detection
+        cnt = Signal(max=max_period + 1)
+        self.sync += [
+            If(switching, cnt.eq(0)
+            ).Else(
+                If(cnt == max_period,
+                    cnt.eq(0),
+                ).Else(
+                    cnt.eq(cnt + 1),
+                )
+            ),
+        ]
+        self.comb += [
+            self.hyst_decrease.eq(cnt == max_period),
+            self.hyst_increase.eq((cnt < min_period) & switching),
+        ]

@@ -2,7 +2,8 @@ import unittest
 import inspect
 import importlib.util
 from math import pi, cos, atan
-from hmmc.regulator.hyst import HystRegulatorBitSerial, TriHystRegulatorBitSerial
+from hmmc.regulator.hyst import HystRegulatorBitSerial, TriHystRegulatorBitSerial, \
+  HysteresisController
 from migen import run_simulation, passive, Module
 from hmmc.output.deltasigma import DeltaSigma
 
@@ -208,3 +209,61 @@ class TestRegulatorTriHyst(TestRegulatorHystBase):
     def test_regulator_tri_hyst_sine(self):
         dut = DutTri()
         self._test_regulator_hyst_sine(dut, 0.1, inspect.stack()[0][3])
+
+
+class TestHysteresisController(unittest.TestCase):
+    @passive
+    def switch(self, dut, period):
+        period_cnt = period - 1
+        while True:
+            if period_cnt == 0:
+                yield dut.phases.eq((yield dut.phases) + 1)
+                period_cnt = period
+            else:
+                period_cnt -= 1
+            yield
+
+    def check_commands(self, dut, decrease_cnt, increase_cnt, cnt):
+        dec = 0
+        inc = 0
+        while cnt:
+            if (yield dut.hyst_decrease):
+                dec += 1
+            if (yield dut.hyst_increase):
+                inc += 1
+            self.assertEqual((yield dut.hyst_increase) & (yield dut.hyst_decrease), False)
+            cnt -= 1
+            yield
+        self.assertEqual(dec, decrease_cnt)
+        self.assertEqual(inc, increase_cnt)
+
+    def test_hysteresis_controller_increase(self):
+        n_phases = 2
+        fcy = 200
+        min_freq = 5
+        max_freq = 20
+        max_period = fcy // min_freq // n_phases
+        min_period = fcy // max_freq // n_phases
+        dut = HysteresisController(4, n_phases, fcy, min_freq, max_freq)
+        run_simulation(dut, [
+            self.switch(dut, min_period - 1),
+            self.check_commands(dut, 0, 2, min_period * 2 + 2)],
+            vcd_name=inspect.stack()[0][3] + ".vcd",
+            clocks={"sys": 1e9 / FCLK})
+
+    def test_hysteresis_controller_decrease(self):
+        n_phases = 2
+        fcy = 200
+        min_freq = 5
+        max_freq = 20
+        max_period = fcy // min_freq // n_phases
+        min_period = fcy // max_freq // n_phases
+        dut = HysteresisController(4, n_phases, fcy, min_freq, max_freq)
+        run_simulation(dut, [
+            self.check_commands(dut, 2, 0, max_period * 2 + 2)],
+            vcd_name=inspect.stack()[0][3] + ".vcd",
+            clocks={"sys": 1e9 / FCLK})
+
+
+if __name__ == "__main__":
+    unittest.main()
