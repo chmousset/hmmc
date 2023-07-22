@@ -22,6 +22,10 @@ class FloatFixedConverter:
     :type radix_nbits: intradix_bits
     """
     def __init__(self, nbits, radix_nbits, signed=False, saturate=False):
+        if signed:
+            assert nbits > radix_nbits
+        else:
+            assert nbits >= radix_nbits
         self.nbits = nbits
         self.radix_nbits = radix_nbits
         self.signed = signed
@@ -31,10 +35,10 @@ class FloatFixedConverter:
         self.resolution = 1 / 2**radix_nbits
         if signed:
             self.dec_bits = dec_bits = nbits - radix_nbits - 1
-            self.range = -1 * 2**dec_bits, 2**dec_bits - self.resolution
+            self.range = -1 * 2**(nbits - 1), 2**(nbits - 1) - self.resolution
         else:
             self.dec_bits = dec_bits = nbits - radix_nbits
-            self.range = 0, 2**(nbits - radix_nbits) - self.resolution
+            self.range = 0, 2**nbits - self.resolution
         self.two_ex_dec = 2**dec_bits
 
     def convert_float(self, value_f):
