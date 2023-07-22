@@ -278,8 +278,8 @@ class HysteresisController(Module):
         # # #
 
         # Compute the minimum and maximum switching period
-        min_period = fclk // max_frequency // n_phases
-        max_period = fclk // min_frequency // n_phases
+        min_period = int(fclk // max_frequency // n_phases)
+        max_period = int(fclk // min_frequency // n_phases)
 
         # switching detection
         switching = Signal()
